@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { Toaster as Sonner } from 'vue-sonner';
-import { useTheme } from '@/hooks/use-theme';
 
-const { theme } = useTheme();
 </script>
 
 <template>
   <Sonner
-    :theme="theme"
     class="toaster group"
     :toastOptions="{
       classes: {
@@ -20,4 +17,3 @@ const { theme } = useTheme();
     v-bind="$attrs"
   />
 </template>
-

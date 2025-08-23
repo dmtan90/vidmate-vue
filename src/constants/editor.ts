@@ -1,5 +1,49 @@
+export const MIN_DURATION = 10;
+export const MAX_DURATION = 5*60;//5MINS
 export const fontSizes = [12, 14, 16, 18, 24, 28, 32, 36, 40, 44, 48, 56, 64, 72, 80, 96];
-export const presetDurations = [10, 15, 20, 25, 30, 50, 60];
+// export const presetDurations = [10, 15, 20, 25, 30, 50, 60];
+export const presetDurations = [
+  {
+    label: "10s",
+    value: 10
+  },
+  {
+    label: "15s",
+    value: 15
+  },
+  {
+    label: "20s",
+    value: 20
+  },
+  {
+    label: "30s",
+    value: 30
+  },
+  {
+    label: "60s",
+    value: 60
+  },
+  {
+    label: "1m",
+    value: 90
+  },
+  {
+    label: "2m",
+    value: 120
+  },
+  {
+    label: "3m",
+    value: 180
+  },
+  {
+    label: "4m",
+    value: 240
+  },
+  {
+    label: "5m",
+    value: 300
+  },
+];
 
 export const minZoom = 0.1;
 export const maxZoom = 2.5;

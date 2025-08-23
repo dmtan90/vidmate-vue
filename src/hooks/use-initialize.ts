@@ -5,8 +5,7 @@ import { whitelistOrigins } from "@/config/message";
 import { useEditorStore } from "@/store/editor";
 import { EditorBrandSchema, EditorProductSchema } from "@/schema/adapter";
 import { createInstance } from "@/lib/utils";
-import type { EditorMode } from "@/store/editor";
-import { startEditorStore } from "@/hooks/use-canvas";
+import type { EditorMode } from "@/plugins/editor";
 
 const Schema = z.object({
   product: EditorProductSchema,
@@ -40,6 +39,7 @@ export function useInitializeEditor() {
   };
 
   onMounted(() => {
+    // console.log("onMounted", mode)
     if (mode.value === "creator") {
       editor.initialize();
     } else {

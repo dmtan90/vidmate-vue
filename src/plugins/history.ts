@@ -1,6 +1,6 @@
 import { propertiesToInclude } from "@/fabric/constants";
 import { createPromise } from "@/lib/utils";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 import { FabricUtils } from "@/fabric/utils";
 
 type HistoryStatus = "pending" | "idle";
@@ -36,7 +36,7 @@ export class CanvasHistory {
     return JSON.stringify(this.canvas.toDatalessJSON(propertiesToInclude));
   }
 
-  private *_load(history: string) {
+  private async _load(history: string) {
     return createPromise<void>((resolve) => {
       FabricUtils.applyFontsBeforeLoad(JSON.parse(history).objects).then(() => {
         this.canvas.loadFromJSON(history, () => {
@@ -71,26 +71,26 @@ export class CanvasHistory {
     return this._redo.length > 0 && this.status === "idle";
   }
 
-  *undo() {
+  async undo() {
     if (!this.canUndo) return;
     this.status = "pending";
     const current = this._undo.pop()!;
     const history = this._undo.pop();
     if (history) {
       this._redo.push(current);
-      yield this._load(history);
+      await this._load(history);
     } else {
       this.status = "idle";
     }
   }
 
-  *redo() {
+  async redo() {
     if (!this.canRedo) return;
     this.status = "pending";
     const history = this._redo.pop();
     if (history) {
       this._undo.push(this._next());
-      yield this._load(history);
+      await this._load(history);
     } else {
       this.status = "idle";
     }

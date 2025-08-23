@@ -8,9 +8,8 @@ import { generateCTA, generateDescription, generateHeadline } from "@/api/ai";
 import { queryClient } from "@/config/api";
 import type { EditorFont } from "@/constants/fonts";
 import { createInstance, createPromise } from "@/lib/utils";
-import { Adapter } from "@/store/adapter";
 import type { EditorAudioElement } from "@/types/editor";
-import type { EditorMode } from "@/store/editor";
+import type { EditorMode } from "@/plugins/editor";
 import { formatSource } from "@/lib/media";
 
 export interface TransformChildren {
@@ -27,11 +26,15 @@ export abstract class FabricUtils {
   }
 
   static isImageElement(object?: any): object is fabric.Image {
-    return object?.type === "image";
+    return object?.type === "image" || object?.type === "gif";
   }
 
   static isVideoElement(object?: any): object is fabric.Video {
     return object?.type === "video";
+  }
+
+  static isGifElement(object?: any): object is fabric.Gif {
+    return object?.type === "gif";
   }
 
   static isChartElement(object?: any): object is fabric.Chart {
@@ -42,18 +45,19 @@ export abstract class FabricUtils {
     return object?.type === "audio";
   }
 
+  static isAudioVisualElement(object?: any): object is fabric.Audio {
+    return object?.type === "audio-visual";
+  }
+
   static isTextboxElement(object?: any): object is fabric.Textbox {
-    // console.log("isTextboxElement", object);
     return object?.type === "textbox";
   }
 
   static isTextElement(object?: any): object is fabric.Text {
-    // console.log("isTextElement", object);
     return object?.type === "text";
   }
 
   static isAnimatedTextElement(object?: any): object is fabric.Group {
-    // console.log("isAnimatedTextElement", object);
     return object?.type === "animated-text";
   }
 
@@ -211,7 +215,7 @@ export abstract class FabricUtils {
     }
   }
 
-  static async applyModificationsAfterLoad(objects: fabric.Object[], { product, objective, brand }: Adapter, mode: EditorMode) {
+  static async applyModificationsAfterLoad(objects: fabric.Object[], { product, objective, brand }: any, mode: EditorMode) {
     if (mode === "creator") return;
 
     if (brand) {
@@ -357,5 +361,72 @@ export abstract class FabricUtils {
     const y = Math.cos(radian);
 
     return { x, y, diagonal, height, width };
+  }
+
+  static exportImage(callback: any, object: fabric.Object, format: string = "png", quality: number = 1.0){
+    if(!callback || !object){
+      return;
+    }
+    try{
+      let tempCanvas = document.createElement('canvas');
+      // Set dimensions of temporary canvas to match object's bounding box
+      // tempCanvas.width = object.getScaledWidth();
+      // tempCanvas.height = object.getScaledHeight();
+      let fcanvas = new fabric.Canvas(tempCanvas, { 
+        enableRetinaScaling: false, 
+        width: object.width, 
+        height: object.height
+      });
+
+      object.clone((clonedObject) => {
+        console.log("clonedObject", clonedObject);
+        clonedObject.set({ left: 0, top: 0 }); // Position at origin of temp canvas
+        fcanvas.add(clonedObject);
+        fcanvas.renderAll();
+        const objectDataURL = fcanvas.toDataURL({
+          format: format,
+          quality: quality,
+        });
+        // fcanvas.dispose();
+        // fcanvas = null;
+        // tempCanvas = null;
+        callback(objectDataURL);
+      });
+    }catch(error){
+      console.log(error);
+    }
+    
+    // let clonedObject = fabric.util.object.clone(object); // Clone to avoid modifying original
+    // clonedObject.set({ left: 0, top: 0 }); // Position at origin of temp canvas
+    // fcanvas.add(clonedObject);
+    // fcanvas.renderAll();
+    // const objectDataURL = fcanvas.toDataURL({
+    //     format: format,
+    //     quality: quality,
+    // });
+    // fcanvas.dispose();
+    // fcanvas = null;
+    // tempCanvas = null;
+    // return objectDataURL;
+
+    // // Assuming 'myObject' is a Fabric.js object on your canvas
+    // let tempCanvas = fabric.util.createCanvasElement();
+    // const tempCtx = tempCanvas.getContext('2d');
+
+    // // Set dimensions of temporary canvas to match object's bounding box
+    // tempCanvas.width = object.getScaledWidth();
+    // tempCanvas.height = object.getScaledHeight();
+
+    // // Render the object onto the temporary canvas
+    // object.render(tempCtx);
+
+    // // Get the data URL from the temporary canvas
+    // const objectDataURL = tempCanvas.toDataURL({
+    //     format: 'png',
+    //     quality: 1.0
+    // });
+
+    // tempCanvas = null;
+    // return objectDataURL;
   }
 }

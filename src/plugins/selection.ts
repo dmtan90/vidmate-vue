@@ -1,8 +1,6 @@
 import { fabric } from "fabric";
-
 import { createInstance } from "@/lib/utils";
-import { Canvas } from "@/store/canvas";
-
+import { Canvas } from "@/plugins/canvas";
 import type { EditorAudioElement } from "@/types/editor";
 import { FabricUtils } from "@/fabric/utils";
 import { propertiesToInclude } from "@/fabric/constants";
@@ -17,7 +15,6 @@ export class CanvasSelection {
     this.active = null;
 
     this._initEvents();
-    // makeAutoObservable(this);
   }
 
   private get canvas() {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Box, Circle, Image, Music, RectangleHorizontal, Triangle, Type, Video, ChartArea } from 'lucide-vue-next';
+import { Cube as Box, Round as Circle, ImageFiles as Image, Music, Rectangle as RectangleHorizontal, Triangle, Text as Type, VideoFile as Video, ChartLineArea as ChartArea } from '@icon-park/vue-next';
 
 defineProps<{ type?: string; name?: string }>();
 // console.log(type, name);

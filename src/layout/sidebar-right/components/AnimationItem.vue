@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
 import { EditorAnimation } from '@/constants/animations';
+import { ElButton } from 'element-plus';
 
 const props = defineProps<{ animation: EditorAnimation; selected?: boolean; onClick: () => void }>();
 </script>

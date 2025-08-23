@@ -1,9 +1,10 @@
+// @ts-ignore
 import { propertiesToInclude } from "@/fabric/constants";
 import { FabricUtils } from "@/fabric/utils";
 import { createPromise } from "@/lib/utils";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 import { cloneDeep, cloneDeepWith } from "lodash";
-// import { makeAutoObservable } from "mobx";
+import { type EditorAudioElement } from "@/types/editor";
 
 export class CanvasClone {
   private _canvas: Canvas;
@@ -12,7 +13,6 @@ export class CanvasClone {
   constructor(canvas: Canvas) {
     this._canvas = canvas;
     this._clipboard = null;
-    // makeAutoObservable(this);
   }
 
   _resolver(_: unknown, key: string | number | undefined) {
@@ -29,13 +29,21 @@ export class CanvasClone {
     this._clipboard = object;
   }
 
-  async paste() {
-    if (!this._clipboard) return;
+  async paste() : Promise<fabric.Object> {
+    if (!this._clipboard) return null;
 
     const name = FabricUtils.elementID(this._clipboard.name!.split("_").at(0) || "clone");
+    if(this._clipboard.type == 'audio'){
+      // const id = FabricUtils.elementID(this._clipboard.name!.split("_").at(0) || "clone");
+      const audio = this._canvas.audio.get(this._clipboard.name);
+      const cloneAudio: EditorAudioElement = cloneDeep(audio);
+      cloneAudio.id = name;
+      // @ts-expect-error
+      this._canvas.audio.elements.push(cloneAudio as EditorAudioElement);
+    }
+
     const meta = cloneDeep(this._clipboard.meta);
     const anim = cloneDeepWith(this._clipboard.anim, this._resolver);
-
     const clone: fabric.Object = await createPromise<fabric.Object>((resolve) => this._clipboard!.clone(resolve, propertiesToInclude));
     clone.set({ name: name, top: clone.top! + 10, left: clone.left! + 10, meta: meta, anim: anim, clipPath: undefined });
 
@@ -65,12 +73,15 @@ export class CanvasClone {
     }
 
     this._clipboard = clone;
+    return clone;
   }
 
-  async clone(object?: fabric.Object) {
+  async clone(object?: fabric.Object) : Promise<fabric.Object> {
     await this.copy(object);
-    await this.paste();
+    const cloned = await this.paste();
+    // console.log(cloned);
     this.destroy();
+    return cloned;
   }
 
   destroy() {

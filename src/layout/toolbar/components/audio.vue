@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { AudioWaveform, ChevronDown, GanttChart, Trash2, Volume2, VolumeX } from 'lucide-vue-next';
+import { WavesLeft as AudioWaveform, Down as ChevronDown, Timeline as GanttChart, Delete as Trash2, VolumeNotice as Volume2, VolumeMute as VolumeX } from '@icon-park/vue-next';
 import { floor } from 'lodash';
+import { cn } from '@/lib/utils';
 
-import Button from '@/components/ui/button.vue';
-import Input from '@/components/ui/input.vue';
 import Label from '@/components/ui/label.vue';
-import PopoverRoot from '@/components/ui/popover-root.vue';
-import PopoverContent from '@/components/ui/popover-content.vue';
-import PopoverTrigger from '@/components/ui/popover-trigger.vue';
-import Separator from '@/components/ui/separator.vue';
 import SliderInput from '@/components/ui/SliderInput.vue';
 import Toggle from '@/components/ui/toggle.vue';
+
+import ToolbarFillOption from '../common/fill.vue';
+import ToolbarStrokeOption from '../common/stroke.vue';
+import ToolbarTimelineOption from '../common/timeline.vue';
+import ToolbarOpacityOption from '../common/opacity.vue';
 
 import { useEditorStore } from '@/store/editor';
 import { useCanvasStore } from '@/store/canvas';
@@ -19,102 +19,122 @@ import { storeToRefs } from 'pinia';
 
 const editor = useEditorStore();
 const canvasStore = useCanvasStore();
-const { canvas, selectionActive: selected, audio, timeline } = storeToRefs(canvasStore);
-// const selected = computed(() => editor.canvas.selection.active);
+const { canvas, selectionActive: selected, audio, timeline, trimmer } = storeToRefs(canvasStore);
 const volume = computed({
   get(){
-    return selected.value?.volume * 100;
+    return (selected.value?.volume ?? 1) * 100;
   },
 
   set(value){
-    audio.value.update(selected.value?.id, { volume: value / 100 });
+    // audio.value.update(selected.value?.id, { volume: value / 100 });
+    audio.value.update(selected.value?.name, { volume: value / 100 });
+    canvas.value.onChangeActiveObjectProperty('volume', value / 100);
   }
 });
 
 const duration = computed({
   get(){
-    return floor(selected.value?.timeline, 2);
+    // return floor(selected.value?.timeline, 2);
+    return (selected.value?.meta?.duration / 1000);
   },
 
   set(value){
-    audio.value.update(selected.value?.id, { timeline: value })
+    // audio.value.update(selected.value?.id, { timeline: value })
+    audio.value.update(selected.value?.name, { timeline: value })
+    canvas.value.onChangeActiveObjectTimelineProperty('duration', value * 1000);
   }
 });
 
 const offset = computed({
   get(){
-    console.log(timeline.value.duration / 1000 - selected.value.timeline);
-    return floor(selected.value?.offset, 2);
+    // return floor(selected.value?.offset, 2);
+    return (selected.value?.meta.offset / 1000);
   },
 
   set(value){
-    audio.value.update(selected.value?.id, { offset: value })
+    // audio.value.update(selected.value?.id, { offset: value })
+    audio.value.update(selected.value?.name, { offset: value })
+    canvas.value.onChangeActiveObjectTimelineProperty('offset', value * 1000);
   }
 });
 
 
 const muted = computed({
   get(){
-    return selected.value.muted;
+    return selected.value?.muted || selected.value?.volume == 0;
   },
 
   set(value){
-    audio.value.update(selected.value.id, { muted: value })
+    // audio.value.update(selected.value.id, { muted: value })
+    audio.value.update(selected.value.name, { muted: value })
+    canvas.value.onChangeActiveObjectProperty('muted', value);
   }
 });
+
+const handleDelete = () => {
+  audio.value.delete(selected.value.name);
+}
 
 </script>
 
 <template>
   <div class="flex items-center h-full w-full overflow-x-scroll scrollbar-hidden">
-    <div class="flex items-center gap-2.5">
-      <Button @click="editor.canvas.trimmer.start()" variant="outline" size="sm" class="gap-1.5">
-        <AudioWaveform :size="15" />
-        <span class="text-xs font-normal">Trim</span>
-      </Button>
-      <PopoverRoot>
-        <PopoverTrigger as-child>
-          <Button variant="outline" size="sm" class="data-[state=open]:bg-card">
+    <div class="flex items-center">
+      <el-button type="primary" text bg round 
+        :class="cn('gap-1.5 mr-2.5 justify-start px-2.5 relative', editor.sidebarRight === 'visual' ? 'bg-card' : '')"
+        @click="editor.setActiveSidebarRight(editor.sidebarRight === 'visual' ? null : 'visual')">
+        <div class="relative">
+          <AudioWaveform :size="15" />
+          <div v-if="!selected?.visible" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-6 bg-card-foreground -rotate-45" />
+        </div>
+        <span class="text-xs font-normal">Visual</span>
+      </el-button>
+      <template v-if="selected.visible">
+        <ToolbarFillOption class="mr-2.5"/>
+        <ToolbarStrokeOption class="mr-2.5"/>
+        <ToolbarOpacityOption />
+      </template>
+      <el-divider direction="vertical" class="h-8" />
+      <el-popover placement="bottom-start" trigger="click" width="300px">
+        <template #reference>
+          <el-button type="primary" text bg round class="data-[state=open]:bg-card">
             <Volume2 :size="15" />
             <span class="text-xs font-normal ml-1.5 mr-2.5">Volume</span>
             <ChevronDown :size="15" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent @open-auto-focus.prevent class="pt-3 pb-3 px-3 w-80" align="start">
-          <Label class="text-xs font-medium">Volume (%)</Label>
-          <div class="flex items-center justify-between">
-            <SliderInput :value="volume" :min="0" :max="100" :step="10" :disabled="muted" :onChange="(value) => volume = value"/>
-            <Toggle v-model="muted" size="sm" class="ml-3 text-gray-400 data-[state=on]:text-primary">
-              <VolumeX :size="15" />
-            </Toggle>
-          </div>
-        </PopoverContent>
-      </PopoverRoot>
+          </el-button>
+        </template>
+        <Label class="text-xs font-medium">Volume (%)</Label>
+        <div class="flex items-center justify-between">
+          <SliderInput :model-value="volume" :min="0" :max="100" :step="10" :disabled="muted" @update:model-value="(value) => volume = value"/>
+          <Toggle v-model="muted" circle class="ml-1" @toggle="value => muted = value">
+            <VolumeX :size="15" />
+          </Toggle>
+        </div>
+      </el-popover>
     </div>
-    <Separator orientation="vertical" class="h-8 mx-4" />
-    <div class="flex items-center gap-2.5">
-      <PopoverRoot>
-        <PopoverTrigger as-child>
-          <Button size="sm" variant="outline" class="gap-1.5 data-[state=open]:bg-card">
+    <el-divider direction="vertical" class="h-8" />
+    <ToolbarTimelineOption />
+    <!--<div class="flex items-center">
+      <el-popover placement="bottom-start" trigger="click" width="200px">
+        <template #reference>
+          <el-button type="primary" text bg round class="gap-1.5 data-[state=open]:bg-card">
             <GanttChart :size="15" />
             <span>Timeline</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent @open-auto-focus.prevent class="pt-3 pb-3 px-3" align="start">
-          <Label class="text-xs font-medium">Duration (s)</Label>
-          <div class="flex items-center justify-between gap-4">
-            <SliderInput :value="duration" :min="1" :max="Math.min(timeline.duration / 1000, selected.duration)" :step="0.5" :onChange="(value) => duration = value"/>
-          </div>
-          <Label class="text-xs font-medium">Offset (s)</Label>
-          <div class="flex items-center justify-between gap-4">
-            <SliderInput :value="offset" :min="0" :max="(timeline.duration / 1000 - selected.timeline)" :step="0.5" :onChange="(value) => offset = value"/>
-          </div>
-        </PopoverContent>
-      </PopoverRoot>
-      <Button variant="outline" size="sm" class="gap-1.5 text-destructive hover:text-destructive" @click="audio.delete(selected.id)">
+          </el-button>
+        </template>
+        <Label class="text-xs font-medium">Duration (s)</Label>
+        <div class="flex items-center justify-between gap-4">
+          <SliderInput :model-value="duration" :min="1" :max="Math.min(timeline.duration / 1000, selected.duration)" :step="0.5" @update:model-value="(value) => duration = value"/>
+        </div>
+        <Label class="text-xs font-medium">Offset (s)</Label>
+        <div class="flex items-center justify-between gap-4">
+          <SliderInput :model-value="offset" :min="0" :max="(timeline.duration / 1000 - selected.timeline)" :step="0.5" @update:model-value="(value) => offset = value"/>
+        </div>
+      </el-popover>
+      <el-button type="danger" text bg round class="gap-1.5 text-destructive hover:text-destructive" @click="">
         <Trash2 :size="15" />
         <span class="text-xs font-normal">Delete</span>
-      </Button>
-    </div>
+      </el-button>
+    </div>-->
   </div>
 </template>

@@ -1,31 +1,124 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import { useMutation } from '@tanstack/vue-query';
-
-import Skeleton from '@/components/ui/skeleton.vue';
-
 import { useEditorStore } from '@/store/editor';
-import { useFetchVideoTemplates } from '@/api/assets';
+import { storeToRefs } from "pinia";
+import { usePublicTemplates } from '@/hooks/use-public-template';
+import { MoreOne, UpSquare, DownSquare, Copy, Delete, Newlybuild, Edit } from "@icon-park/vue-next";
 
 const editor = useEditorStore();
+const { dimension } = storeToRefs(editor);
+const templateStore = usePublicTemplates();
+const { templates, error, loading, hasNextPage, currentPage } = storeToRefs(templateStore);
+// templateStore.loadCuratedtemplates();
+// const templates = ref([]);
+const templeteRef = ref<HTMLDivElement | null>(null);
+// const limit = 50;
+// let page = -1;
+// let endOfTemplete = false;
+// let loading = false;
+const fetchNextTemplete = () => {
+  if(loading.value || !hasNextPage.value){
+    return;
+  }
+  const page = currentPage.value + 1;
+  console.log("page", page);
+  templateStore.loadCuratedtemplatesAppend(page);
+  // page++;
+  // loading = true;
+  // fetchVideoTemplates({ limit: limit, is_published: editor.mode === "adapter", offset: page }).then(data => {
+  //   templates.value.push(...data);
+  //   loading = false;
+  //   if(data.length < limit){
+  //     endOfTemplete = true;
+  //   }
+  // });
+};
 
-const query = useFetchVideoTemplates({ limit: 50, is_published: editor.mode === "adapter" });
+onMounted(() => {
+  templateStore.loadCuratedtemplates();
+});
+
+watch(templeteRef, (elRef) => {
+  if (elRef) {
+    elRef.addEventListener("scrollend", fetchNextTemplete);
+  }
+});
+
+watch(error, (value) => {
+  if(value){
+    toast.error(value);
+  }
+});
+
+onUnmounted(() => {
+  if(templeteRef.value){
+    templeteRef.value.removeEventListener("scrollend", fetchNextTemplete);
+  }
+});
 
 const loadTemplate = (template: any, mode: string) => {
-  editor.loadTemplate(template, mode);
+  console.log("template", template);
+  const _template = Object.assign({}, template);
+  if(template.pages.length == 0){
+    return;
+  }
+
+  if(_template.pages.length > 1){
+    _template.pages = [];
+    const pages = template.pages;
+    const ratio = dimension.width / dimension.height;
+    for(let i = 0; i < pages.length; i++){
+      let page = pages[i];
+      const pageRatio = page.data ? (page.data.width / page.data.height) : 0;
+      if(pageRatio == ratio){
+        _template.pages.push(page);
+        break;
+      }
+    }
+
+    if(_template.pages.length == 0){
+      _template.pages.push(template.pages[0]);
+    }
+  }
+
+  if(mode == "newScene"){
+    editor.addPage(_template.pages[0]);
+    return;
+  }
+
+  editor.loadTemplate(_template, mode);
 };
+
 </script>
 
 <template>
-  <div class="px-3 grid grid-cols-2 gap-4 relative">
-    <template v-if="!query.data || !query.data.pages.flat().length">
-      <Skeleton v-for="(_, index) in 6" :key="index" class="w-full aspect-square rounded-md" />
-      <span class="text-xs font-semibold text-foreground/60 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 line-clamp-1">Coming Soon</span>
+  <div class="px-3 grid grid-cols-2 gap-4 relative overflow-x-scroll scrollbar-hidden max-h-[300px]" ref="templeteRef">
+    <template v-if="!templates || !templates.length">
+      <el-skeleton v-for="(_, index) in 6" :key="index" :rows="2" animated class="w-full aspect-square rounded-md" />
+      <span class="text-xs font-semibold text-foreground/60 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 line-clamp-1">Loading...</span>
     </template>
     <template v-else>
-      <button v-for="template in query.data.pages.flat()" :key="template.id" class="w-full aspect-square rounded-md overflow-hidden group border" @click="loadTemplate(template, 'replace')">
-        <img :src="template.pages[0].thumbnail" :alt="template.name" class="group-hover:scale-110 transition-transform" />
-      </button>
+      <template v-for="(template,index) in templates" :key="template.id">
+        <button v-if="template.pages.length > 0" class="relative w-full aspect-square rounded-md overflow-hidden group border relative" 
+        @click="loadTemplate(template, 'replace')"
+        @mouseover="templates[index].play = true" @mouseleave="templates[index].play = false">
+          <video v-if="templates[index].play" :src="template.pages[0].preview" class="absolute left-0 top-0 z-10 h-full w-full object-cover" autoplay loop />
+          <img :src="template.pages[0].thumbnail" :alt="template.name" class="group-hover:scale-110 transition-transform" />
+          <el-dropdown placement="bottom-end" class="absolute right-1 top-1" @command="(cmd) => loadTemplate(template, cmd)">
+            <el-button type="primary" text circle>
+              <MoreOne :size="15" />
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item :icon="Edit" command="replace">Replace scene</el-dropdown-item>
+                <el-dropdown-item :icon="Newlybuild" command="newScene">New scene</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </button>
+      </template>
     </template>
   </div>
 </template>

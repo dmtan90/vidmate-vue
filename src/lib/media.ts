@@ -121,6 +121,9 @@ export async function extractAudioWaveformFromAudioFile(file: File) {
 
 export async function drawWaveformFromAudioBuffer(buffer: AudioBuffer, height?: number, width?: number, from?: number, to?: number) {
   return createInstance(Promise<Blob>, (resolve, reject) => {
+    if(!buffer){
+      return reject();
+    }
     const sampleRate = buffer.sampleRate;
     const fromTime = clamp(from || 0, 0, buffer.duration);
     const toTime = clamp(to || buffer.duration, 0, buffer.duration);
@@ -252,6 +255,7 @@ export async function compressVideoFile(ffmpeg: FFmpeg, file: File, width = 2000
 export function convertBufferToWaveBlob(_buffer: AudioBuffer, _length: number) {
   let numOfChannels = _buffer.numberOfChannels;
   let length = _length * numOfChannels * 2 + 44;
+  // @ts-expect-error
   let buffer = createInstance(ArrayBuffer, length);
   let view = createInstance(DataView, buffer);
   let channels = [];

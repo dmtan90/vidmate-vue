@@ -1,24 +1,28 @@
 <script setup lang="ts">
-import { computed, useAttrs, type PropType } from 'vue';
-import { Toggle as ToggleRoot } from 'reka-ui';
-import { cn } from '@/lib/utils';
-import { toggleVariants } from '@/lib/utils';
+import { watch } from "vue";
+import { ElSwitch } from 'element-plus';
 
 const props = defineProps({
-  variant: { type: String as PropType<"default" | "outline">, default: 'default' },
-  size: { type: String as PropType<"default" | "sm" | "lg">, default: 'default' },
-  class: { type: String, default: '' },
+  modelValue: {
+    type: Boolean,
+    default: false
+  },
 });
 
-const computedClass = computed(() =>
-  cn(toggleVariants({ variant: props.variant, size: props.size }), props.class)
-);
+const emit = defineEmits(['toggle']);
 
-const attrs = useAttrs();
+const handleChange = () => {
+  let value = !props.modelValue;
+  emit('toggle', value);
+};
+
+watch(props, (value) => {
+  console.log(props);
+});
 </script>
 
 <template>
-  <ToggleRoot :class="computedClass" v-bind="attrs">
+  <el-button :type="props.modelValue ? 'primary' : ''" :size="props.size" :disabled="props.disabled" @click="handleChange()">
     <slot />
-  </ToggleRoot>
+  </el-button>
 </template>

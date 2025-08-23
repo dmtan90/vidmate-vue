@@ -2,10 +2,8 @@
 import { computed, ref, watch } from 'vue';
 import VueDraggable from 'vue-draggable-resizable';
 import { cn } from '@/lib/utils';
-import Button from '@/components/ui/button.vue';
-import Input from '@/components/ui/input.vue';
 import Label from '@/components/ui/label.vue';
-import { RotateCw } from 'lucide-vue-next';
+import { Refresh as RotateCw } from '@icon-park/vue-next';
 import { FabricUtils } from '@/fabric/utils';
 
 const props = defineProps({
@@ -21,7 +19,7 @@ const handleWidth = 10;
 const handleHeight = 32;
 const containerWidth = 230;//computed(() => props.width);
 const trackWidth = computed(() => containerWidth - handleWidth);
-console.log("props", props);
+// console.log("props", props);
 
 const angle = ref(FabricUtils.revertGradient(props.coords));
 
@@ -104,12 +102,15 @@ const handleRotate = (newAngle: number) => {
         Gradient Angle
       </Label>
       <div class="relative flex-1 ml-6 mr-2">
-        <Input id="angle" class="h-8 text-xs pr-6 w-full" type="number" :value="angle" @update:model-value="(value) => handleRotate(+value)" />
-        <span class="absolute text-foreground/50 right-2.5 top-1 text-sm">°</span>
+        <el-input-number v-model="angle" id="angle" size="small" class="h-8 text-xs w-full" controls-position="right" @change="(value) => handleRotate(+value)" >
+          <template #suffix>
+            <span class="text-sm">°</span>
+          </template>
+        </el-input-number>
       </div>
-      <Button size="icon" variant="outline" class="shrink-0" @click="handleRotate(angle + 15)">
+      <el-button plain circle size="small" variant="outline" class="shrink-0" @click="handleRotate(angle + 15)">
         <RotateCw :size="14" />
-      </Button>
+      </el-button>
     </div>
   </div>
 </template>

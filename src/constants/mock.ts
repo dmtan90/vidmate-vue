@@ -1,18 +1,18 @@
-import { reactive, toRefs, watch } from "vue";
+import { reactive } from "vue";
 import { defineStore } from "pinia"
 
-import { createInstance } from "@/lib/utils";
+// import { createInstance } from "@/lib/utils";
 import type { EditorBrand, EditorProduct } from "@/schema/adapter";
 import type { EditorAudio, EditorMedia, EditorTemplate } from "@/types/editor";
 import type { PromptSession } from "@/types/prompt";
 
-const images: EditorMedia[] = [];
-const videos: EditorMedia[] = [];
-const audios: EditorAudio[] = [];
+// const images: EditorMedia[] = ref([]);
+// const videos: EditorMedia[] = [];
+// const audios: EditorAudio[] = [];
 
-const prompts: PromptSession[] = [];
-const templates: EditorTemplate[] = [];
-const subscribers: Function[] = [];
+// const prompts: PromptSession[] = [];
+// const templates: EditorTemplate[] = [];
+// const subscribers: Function[] = [];
 
 export interface MockDataState {
   images: EditorMedia[];
@@ -79,17 +79,17 @@ export interface MockDataState {
 // }
 
 export const useMockStore = defineStore('mock', {
-  state: (): MockDataState => ({
-    images, 
-    videos, 
-    audios, 
-    templates, 
-    prompts,
-    subscribers
+  state: () => ({
+    images: reactive([]), 
+    videos: reactive([]), 
+    audios: reactive([]), 
+    templates: reactive([]), 
+    prompts: reactive([]),
+    subscribers: reactive([])
   }),
 
   getters: {
-    store() {
+    store(): any {
       return this.$state;
     }
   },

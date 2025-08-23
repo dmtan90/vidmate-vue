@@ -2504,11 +2504,27 @@ export class ActiveSelection {
 }
 
 interface IVideoOptions extends IImageOptions {
+  volume?: number;
   muted?: boolean;
   trimStart?: number;
   trimEnd?: number;
   hasAudio?: boolean;
 }
+
+import type { VisualType, VisualProps } from "audio-visual";
+
+interface IAudioOptions extends IObjectOptions {
+  /**
+   * crossOrigin value (one of "", "anonymous", "allow-credentials")
+   */
+  crossOrigin?: string | undefined;
+  volume?: number;
+  trimStart?: number;
+  trimEnd?: number;
+  visualType?: VisualType;
+  visualProps?: VisualProps;
+}
+
 interface IImageOptions extends IObjectOptions {
   /**
    * crossOrigin value (one of "", "anonymous", "allow-credentials")
@@ -2617,6 +2633,139 @@ export class Video extends Image {
    * @param [imgOptions] Options object
    */
   static fromURL(url: string, callback?: (video: Video | null) => void, options?: IVideoOptions): Video;
+}
+
+interface Audio extends Object, IAudioOptions {}
+export class Audio extends Object {
+  /**
+   * Constructor
+   * @param element Audio element
+   * @param [options] Options object
+   */
+  constructor(element: HTMLAudioElement, options?: IAudioOptions);
+  /**
+   * Returns the current audio playback status
+   */
+  playing: boolean;
+  /**
+   * Returns the current audio playback status
+   */
+  trimStart: number;
+  /**
+   * Returns the current audio playback status
+   */
+  trimEnd: number;
+  /**
+   * Returns the audio element which this instance is based on
+   * @return the audio element
+   */
+  audioElement: HTMLAudioElement;
+  /**
+   * Returns the audio visual which this instance is based on
+   * @return the audio visual
+   */
+  audioVisual: AudioVisual;
+  /**
+   * Returns the current audio visual type
+   */
+  visualType: VisualType;
+  /**
+   * Returns the current audio visual props
+   */
+  visualProps: VisualProps;
+  /**
+   * Returns the total duration of the audio after applying trim left and trim right
+   */
+  duration(trim?: boolean): number;
+  /**
+   * Getter and setter for if the audio is muted
+   */
+  muted(muted?: boolean): boolean;
+  /**
+   * Getter and setter for the volume of the audio
+   */
+  volume(voumne?: number): number;
+  /**
+   * Starts the audio playback
+   */
+  play(): void;
+  /**
+   * Stops the audio playback
+   */
+  pause(): void;
+  /**
+   * Changes the current seek time of audio
+   * * @param [seek] The seek time in seconds
+   */
+  seek(seek: number): Promise<void>;
+  /**
+   * Creates an instance of fabric.Image from an URL string
+   * @param url URL to create an image from
+   * @param [callback] Callback to invoke when image is created (newly created image is passed as a first argument)
+   * @param [imgOptions] Options object
+   */
+  static fromURL(url: string, callback?: (audio: Audio | null) => void, options?: IAudioOptions): Audio;
+}
+
+interface GifFrame {
+  img: Blob | string;//new Blob([frame.patch], { type: 'image/gif' })
+  delay: number;
+};
+
+interface Gif extends Object, IImageOptions {}
+export class Gif extends Image {
+  /**
+   * Constructor
+   * @param element Gif element
+   * @param [options] Options object
+   */
+  constructor(element: HTMLImageElement, options?: IImageOptions);
+  /**
+   * Returns the current video playback status
+   */
+  playing: boolean;
+  /**
+   * Returns the current gif frames
+   */
+  frames: GifFrame[];
+  /**
+   * Returns the image element which this instance is based on
+   * @return the Gif element
+   */
+  _element: HTMLImageElement;
+  /**
+   * Returns the image element which this instance is based on
+   * @return the Gif element
+   */
+  getElement(): HTMLImageElement;
+  /**
+   * Sets the video element for this instance to a specified one.
+   * If filters defined they are applied to new video.
+   * You might need to call `canvas.renderAll` and `object.setCoords` after replacing, to render new image and update controls area.
+   * @param element image element
+   * @param [options] Options object
+   */
+  setElement(element: HTMLImageElement, options?: IImageOptions): Image;
+  /**
+   * Starts the video playback
+   */
+  play(): void;
+  /**
+   * Stops the video playback
+   */
+  pause(): void;
+  /**
+   * Changes the current seek time of video
+   * * @param [seek] The seek time in seconds
+   */
+  seek(seek: number): Promise<void>;
+  /**
+   * Creates an instance of fabric.Image from an URL string
+   * @param url URL to create an image from
+   * @param [callback] Callback to invoke when image is created (newly created image is passed as a first argument)
+   * @param [imgOptions] Options object
+   */
+  static fromURL(url: string, callback?: (gif: Gif | null) => void, options?: IImageOptions): Video;
 }
 
 interface Image extends Object, IImageOptions {}

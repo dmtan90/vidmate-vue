@@ -1,7 +1,7 @@
 import anime from "animejs";
 // import { makeAutoObservable } from "mobx";
 import { FabricUtils } from "@/fabric/utils";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 
 export class CanvasTimeline {
   private _canvas: Canvas;
@@ -56,7 +56,7 @@ export class CanvasTimeline {
     const hidden = object.meta!.offset > ms || object.meta!.offset + object.meta!.duration < ms;
     object.visible = !FabricUtils.isTextboxElement(object) || !this.playing ? !hidden : false;
     if (object.clipPath) object.clipPath.visible = object.visible;
-    if (FabricUtils.isVideoElement(object)) {
+    if (FabricUtils.isVideoElement(object) || FabricUtils.isGifElement(object) || FabricUtils.isAudioElement(object)) {
       if (this.playing) {
         if (hidden) object.pause();
         else object.play();

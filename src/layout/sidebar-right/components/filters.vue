@@ -1,14 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Eye, EyeOff, X } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { Eye, EyesClose as EyeOff, Close as X } from '@icon-park/vue-next';
 
-import Button from '@/components/ui/button.vue';
 import Label from '@/components/ui/label.vue';
 import Toggle from '@/components/ui/toggle.vue';
-import TabsRoot from '@/components/ui/tabs-root.vue';
-import TabsContent from '@/components/ui/tabs-content.vue';
-import TabsList from '@/components/ui/tabs-list.vue';
-import TabsTrigger from '@/components/ui/tabs-trigger.vue';
 
 import { useEditorStore } from '@/store/editor';
 import { useCanvasStore } from '@/store/canvas';
@@ -22,7 +17,6 @@ import AdjustmentItem from './AdjustmentItem.vue';
 const editor = useEditorStore();
 const canvasStore = useCanvasStore();
 const { canvas, selectionActive: selected, effects } = storeToRefs(canvasStore);
-// const selected = computed(() => editor.canvas.selection.active);
 
 const handleToggleFilter = (filter: any) => {
   if (selected.value?.effects?.name === filter.name) {
@@ -45,8 +39,22 @@ const handleToggleAdjustment = (adjustment: any, active: boolean) => {
 };
 
 const handleModifyAdjustment = (adjustment: any, intensity: number) => {
+  console.log("handleModifyAdjustment", adjustment, intensity);
   effects.value.applyAdjustmentToActiveImage(adjustment.filter(intensity), adjustment.name, intensity);
 };
+
+const activeTab = ref('effects');
+
+const options = [
+  {
+    value: 'effects',
+    label: 'Effects'
+  },
+  {
+    value: 'adjustments',
+    label: 'Adjustments'
+  }
+];
 
 </script>
 
@@ -54,27 +62,35 @@ const handleModifyAdjustment = (adjustment: any, intensity: number) => {
   <div class="h-full w-full">
     <div class="flex items-center h-14 border-b px-4 gap-2.5">
       <h2 class="font-semibold">Filters</h2>
-      <Button size="icon" variant="outline" class="bg-card h-7 w-7 ml-auto" @click="editor.setActiveSidebarRight(null)">
+      <el-button plain circle class="bg-card h-7 w-7 ml-auto" @click="editor.setActiveSidebarRight(null)">
         <X :size="15" />
-      </Button>
+      </el-button>
     </div>
     <section class="sidebar-container px-4 py-4">
-      <TabsRoot default-value="effects">
-        <TabsList class="w-full grid grid-cols-2">
-          <TabsTrigger value="effects" class="text-xs h-full">
-            Effects
-          </TabsTrigger>
-          <TabsTrigger value="adjustments" class="text-xs h-full">
-            Adjustments
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="effects" class="mt-0 pt-3.5">
-          <div class="flex flex-col gap-3">
+      <el-segmented v-model="activeTab" :options="options" block style="--el-border-radius-base: 20px;"/>
+      <div class="flex flex-col gap-3 pt-3.5">
+        <template v-if="activeTab == 'effects'">
+          <FilterItem v-for="filter in filters" :key="filter.name" :filter="filter" :selected="selected" @change="(intensity) => handleModifyFilter(filter, intensity)" @click="handleToggleFilter(filter)" />
+        </template>
+        <template v-else>
+          <AdjustmentItem
+            v-for="adjustment in adjustments"
+            :key="adjustment.name"
+            :adjustment="adjustment"
+            :selected="selected"
+            @change="(intensity) => handleModifyAdjustment(adjustment, intensity)"
+            @toggle="(active) => handleToggleAdjustment(adjustment, active)"
+          />
+        </template>
+      </div>
+      <!--<el-tabs v-model="activeTab" type="card" stretch>
+        <el-tab-pane label="Effects" name="effects">
+          <div class="flex flex-col gap-3 pt-3.5">
             <FilterItem v-for="filter in filters" :key="filter.name" :filter="filter" :selected="selected" @change="(intensity) => handleModifyFilter(filter, intensity)" @click="handleToggleFilter(filter)" />
           </div>
-        </TabsContent>
-        <TabsContent value="adjustments" class="mt-0 pt-5">
-          <div class="flex flex-col gap-4">
+        </el-tab-pane>
+        <el-tab-pane label="Adjustments" name="adjustments">
+          <div class="flex flex-col gap-4 pt-5">
             <AdjustmentItem
               v-for="adjustment in adjustments"
               :key="adjustment.name"
@@ -84,8 +100,8 @@ const handleModifyAdjustment = (adjustment: any, intensity: number) => {
               @toggle="(active) => handleToggleAdjustment(adjustment, active)"
             />
           </div>
-        </TabsContent>
-      </TabsRoot>
+        </el-tab-pane>
+      </el-tabs>-->
     </section>
   </div>
 </template>

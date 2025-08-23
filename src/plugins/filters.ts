@@ -1,20 +1,25 @@
-import { Canvas } from "@/store/canvas";
-// import { makeAutoObservable } from "mobx";
+import { Canvas } from "@/plugins/canvas";
 
 export class CanvasEffects {
   private _canvas: Canvas;
 
   constructor(canvas: Canvas) {
     this._canvas = canvas;
-    // makeAutoObservable(this);
   }
 
   private get canvas() {
     return this._canvas.instance!;
   }
 
+  isValidObject(image: fabric.Image){
+    if(image && (image.type === "image" || image.type === "gif" || image.type === "video")){
+      return true;
+    }
+    return false;
+  }
+
   removeImageFilter(image: fabric.Image, name: string) {
-    if (!image || !(image.type === "image" || image.type === "video") || image.effects!.name !== name) return;
+    if (!image || !(image.type === "image" || image.type === "gif" || image.type === "video") || image.effects!.name !== name) return;
 
     image.effects!.name = null;
     image.effects!.intensity = null;
@@ -31,7 +36,7 @@ export class CanvasEffects {
 
   removeFilterFromActiveImage(name: string) {
     const image = this.canvas.getActiveObject() as fabric.Image;
-    if (!image || !(image.type === "image" || image.type === "video")) return;
+    if (!image || !(image.type === "image" || image.type === "gif" || image.type === "video")) return;
     this.removeImageFilter(image, name);
   }
 
@@ -56,12 +61,12 @@ export class CanvasEffects {
 
   addFilterToActiveImage(filter: fabric.IBaseFilter[], name: string, intensity: number) {
     const image = this.canvas.getActiveObject() as fabric.Image;
-    if (!image || !(image.type === "image" || image.type === "video")) return;
+    if (!image || !(image.type === "image" || image.type === "gif" || image.type === "video")) return;
     this.addImageFilter(image, filter, name, intensity);
   }
 
   removeImageAdjustment(image: fabric.Image, name: string) {
-    if (!this.canvas || !image || !(image.type === "image" || image.type === "video") || !image.adjustments![name]) return;
+    if (!this.canvas || !image || !(image.type === "image" || image.type === "gif" || image.type === "video") || !image.adjustments![name]) return;
 
     if (image.adjustments![name].index >= 0) image.filters!.splice(image.adjustments![name].index, 1);
     image.applyFilters();
@@ -72,12 +77,12 @@ export class CanvasEffects {
 
   removeAdjustmentFromActiveImage(name: string) {
     const image = this.canvas.getActiveObject() as fabric.Image;
-    if (!image || !(image.type === "image" || image.type === "video")) return;
+    if (!image || !(image.type === "image" || image.type === "gif" || image.type === "video")) return;
     this.removeImageAdjustment(image, name);
   }
 
   applyImageAdjustment(image: fabric.Image, filter: fabric.IBaseFilter, name: string, intensity: number) {
-    if (!image || !(image.type === "image" || image.type === "video")) return;
+    if (!image || !(image.type === "image" || image.type === "gif" || image.type === "video")) return;
 
     if (!image.adjustments![name]) image.adjustments![name] = {};
     const adjustment = image.adjustments![name];
@@ -98,7 +103,7 @@ export class CanvasEffects {
 
   applyAdjustmentToActiveImage(filter: fabric.IBaseFilter, name: string, intensity: number) {
     const image = this.canvas.getActiveObject() as fabric.Image;
-    if (!image || !(image.type === "image" || image.type === "video")) return;
+    if (!image || !(image.type === "image" || image.type === "gif" || image.type === "video")) return;
     this.applyImageAdjustment(image, filter, name, intensity);
   }
 }

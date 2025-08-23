@@ -2,7 +2,7 @@ import type { EditorBrand, EditorProduct } from "@/schema/adapter";
 
 export type AdapterMode = "create" | "edit";
 
-interface AdapterProps {
+export interface AdapterProps {
   product?: EditorProduct;
   brand?: EditorBrand;
   objective?: string;

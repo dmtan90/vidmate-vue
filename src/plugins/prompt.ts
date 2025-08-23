@@ -2,9 +2,9 @@ import { isUndefined } from "lodash";
 
 import { FabricUtils } from "@/fabric/utils";
 import { createMap } from "@/lib/utils";
-import { type Editor } from "@/store/editor";
+import { Editor } from "@/plugins/editor";
 
-import { inter } from "@/constants/fonts";
+import { defaultFont } from "@/constants/fonts";
 import { useMockStore } from "@/constants/mock";
 
 import type { EditorAudioElement } from "@/types/editor";
@@ -16,7 +16,7 @@ export class Prompt {
   modal: boolean;
   sessions: Map<string, PromptSession>;
 
-  constructor(editor: Editor) {
+  constructor(editor: any) {
     this.editor = editor;
     this.modal = false;
     const mock = useMockStore();
@@ -72,7 +72,7 @@ export class Prompt {
           const speech: EditorAudioElement = await this.canvas.audio.add(scene.speech.url, FabricUtils.elementID(scene.speech.voice));
           this.canvas.audio.update(speech.id, { timeline: Math.min(speech.duration, scene.duration), offset: offset / 1000 });
           if (scene.speech.subtitle) {
-            const text = this.canvas.onAddText(scene.speech.subtitle, inter, 42, 700);
+            const text = this.canvas.onAddText(scene.speech.subtitle, defaultFont, 42, 700);
             text.meta!.duration = Math.min(speech.duration * 1000, scene.duration * 1000);
             text.meta!.offset = offset;
             text.anim!.in.name = "typewriter";

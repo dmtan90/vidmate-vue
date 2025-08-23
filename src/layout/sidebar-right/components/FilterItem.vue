@@ -3,12 +3,23 @@ import { computed } from 'vue';
 import { cn } from '@/lib/utils';
 import { filterPlaceholder } from '@/constants/editor';
 import Label from '@/components/ui/label.vue';
-import FilterSlider from "@/components/slider/filter-slider.vue";
+import { ElButton } from 'element-plus';
 
 const props = defineProps<{ filter: any; selected: any; onChange: (value: number) => void; onClick: () => void }>();
 
 const active = computed(() => props.selected.effects?.name === props.filter.name);
 const intensity = computed(() => props.selected.effects?.intensity || 50);
+const filterValue = computed({
+  get(){
+    return props.selected.effects?.intensity || 50
+  },
+
+  set(value){
+    if(props.onChange){
+      props.onChange(value);
+    }
+  }
+});
 </script>
 
 <template>
@@ -29,7 +40,7 @@ const intensity = computed(() => props.selected.effects?.intensity || 50);
       </button>
       <div class="flex items-center justify-between gap-10">
         <Label class="text-xs font-medium">Intensity</Label>
-        <FilterSlider :min="1" :max="100" :step="1" :value="[intensity]" @update:model-value="([val]) => onChange(val)" />
+        <el-slider :min="1" :max="100" :step="1" v-model="filterValue" />
       </div>
     </div>
   </template>

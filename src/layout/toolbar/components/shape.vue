@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Separator from '@/components/ui/separator.vue';
 
 import ToolbarFillOption from '../common/fill.vue';
 import ToolbarStrokeOption from '../common/stroke.vue';
@@ -11,11 +10,11 @@ import ToolbarOpacityOption from '../common/opacity.vue';
 <template>
   <div class="flex items-center h-full w-full overflow-x-scroll scrollbar-hidden">
     <ToolbarFillOption />
-    <Separator orientation="vertical" class="h-8 mx-4" />
+    <el-divider direction="vertical" class="h-8" />
     <ToolbarStrokeOption />
-    <Separator orientation="vertical" class="h-8 mx-4" />
+    <el-divider direction="vertical" class="h-8" />
     <ToolbarOpacityOption />
-    <Separator orientation="vertical" class="h-8 mr-4" />
+    <el-divider direction="vertical" class="h-8" />
     <ToolbarTimelineOption />
   </div>
 </template>

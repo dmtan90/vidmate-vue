@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import { computed, shallowRef, watch, ref } from 'vue';
 
-import { Clapperboard, Grid2X2, Image, Layers, Music, Scaling, Type, Upload, Video, ChartArea, Bot } from 'lucide-vue-next';
+import { CarouselVideo as Clapperboard, Play, Application as Grid2X2, ImageFiles as Image, Layers, Music, Scale as Scaling, Text as Type, Upload, VideoFile as Video, ChartLineArea as ChartArea, Robot as Bot } from '@icon-park/vue-next';
 
-import Button from '@/components/ui/button.vue';
-import DrawerRoot from '@/components/ui/drawer-root.vue';
-import DrawerContent from '@/components/ui/drawer-content.vue';
-import DrawerTrigger from '@/components/ui/drawer-trigger.vue';
+import { ElButton, ElDrawer } from 'element-plus';
 
 import { useIsTablet } from '@/hooks/use-media-query';
 import { useEditorStore } from '@/store/editor';
@@ -14,6 +11,7 @@ import { storeToRefs } from "pinia";
 
 import { leftSidebarWidth } from '@/constants/layout';
 import { cn } from '@/lib/utils';
+import { Motion, AnimatePresence } from 'motion-v'
 
 import AudioMenu from './components/audio.vue';
 import ElementMenu from './components/element.vue';
@@ -26,6 +24,7 @@ import UploadMenu from './components/upload.vue';
 import VideoMenu from './components/video.vue';
 import ChartMenu from './components/chart.vue';
 import PromptMenu from './components/prompt.vue';
+import AIMenu from './components/ai.vue';
 
 const sidebarComponentMap: Record<string, any> = {
   scenes: SceneMenu,
@@ -39,16 +38,12 @@ const sidebarComponentMap: Record<string, any> = {
   elements: ElementMenu,
   formats: FormatMenu,
   prompt: PromptMenu,
+  ai: AIMenu,
 };
 
 const editor = useEditorStore();
 const isTablet = useIsTablet();
 const { sidebarLeft } = storeToRefs(editor);
-
-// console.log(isTablet);
-// watch(isTablet, (value) => {
-//   console.log(isTablet, value);
-// })
 
 const items = computed(() => {
   return [
@@ -63,15 +58,20 @@ const items = computed(() => {
       value: "templates",
     },
     {
+      icon: Bot,
+      label: "GPT",
+      value: "prompt",
+    },
+    {
+      icon: Bot,
+      label: "Gemini",
+      value: "ai",
+    },
+    {
       icon: Layers,
       label: "Elements",
       value: "elements",
     },
-    // {
-    //   icon: ChartArea,
-    //   label: "Charts",
-    //   value: "charts",
-    // },
     {
       icon: Type,
       label: "Texts",
@@ -97,16 +97,16 @@ const items = computed(() => {
       label: "Uploads",
       value: "uploads",
     },
-    {
-      icon: Bot,
-      label: "AI",
-      value: "prompt",
-    },
-    {
-      icon: Scaling,
-      label: "Formats",
-      value: "formats",
-    },
+    // {
+    //   icon: Bot,
+    //   label: "AI",
+    //   value: "prompt",
+    // },
+    // {
+    //   icon: Scaling,
+    //   label: "Formats",
+    //   value: "formats",
+    // },
   ];
 });
 
@@ -120,11 +120,6 @@ watch(sidebarLeft, (menu) => {
   }
 });
 
-// const activeSidebarComponent = computed(() => {
-//   console.log("activeSidebarComponent", editor.sidebarLeft);
-//   return editor.sidebarLeft ? shallowRef(sidebarComponentMap[editor.sidebarLeft]) : null;
-// });
-
 const handleDrawerClose = () => {
   editor.setActiveSidebarLeft(null);
 };
@@ -134,43 +129,42 @@ const handleDrawerClose = () => {
 <template>
   <template v-if="!isTablet">
     <aside :class="cn('h-16 absolute bottom-0 left-0 bg-card dark:bg-gray-900/40 border-t border-t-border/25 flex items-center z-10 gap-2.5 w-screen overflow-x-scroll scrollbar-hidden px-1.5')">
-      <Button
+      <button
         v-for="{ icon: Icon, label, value } in items"
         :key="value"
-        size="icon"
-        variant="ghost"
         :aria-label="value"
-        :class="cn('min-w-16 h-14 flex flex-col gap-2 hover:bg-transparent hover:text-primary', editor.sidebarLeft === value ? 'text-primary' : 'text-foreground')"
+        :class="cn('min-w-16 h-14 flex flex-col gap-2', editor.sidebarLeft === value ? 'text-primary' : 'text-foreground')"
         @click="editor.setActiveSidebarLeft(editor.sidebarLeft === value ? null : value)"
       >
         <component :is="Icon" :size="20" :stroke-width="1.5" />
         <span class="text-xxs leading-none">{{ label }}</span>
-      </Button>
+      </button>
     </aside>
-    <DrawerRoot :open="!!activeSidebarComponent" @update:open="handleDrawerClose">
-      <DrawerContent>
-        <component :is="activeSidebarComponent.value" v-if="activeSidebarComponent" />
-      </DrawerContent>
-    </DrawerRoot>
+    <el-drawer :model-value="!!activeSidebarComponent" @update:model-value="handleDrawerClose" direction="ltr">
+      <component :is="activeSidebarComponent.value" v-if="activeSidebarComponent" />
+    </el-drawer>
   </template>
 
   <template v-else>
     <aside class="w-20 sidebar-wrapper scrollbar-hidden bg-card/75 dark:bg-gray-900/30 flex flex-col items-center py-2 border-r border-r-border/50 gap-2 shrink-0">
-      <Button
+      <button
         v-for="{ icon: Icon, label, value } in items"
         :key="value"
-        size="icon"
-        variant="ghost"
+        text
         :aria-label="value"
-        :class="cn('w-16 h-16 flex flex-col gap-2 shrink-0', editor.sidebarLeft === value ? 'bg-card shadow-sm border hover:bg-card' : 'bg-transparent hover:bg-accent')"
+        :class="cn('inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-normal transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 w-16 h-16 flex flex-col gap-2 shrink-0 bg-transparent hover:bg-accent w-16 h-16 flex flex-col gap-2 shrink-0 bg-transparent hover:bg-accent', editor.sidebarLeft === value ? 'bg-card shadow-sm border hover:bg-card' : 'bg-transparent hover:bg-accent')"
         @click="editor.setActiveSidebarLeft(editor.sidebarLeft === value ? null : value)"
       >
         <component :is="Icon" :size="20" :stroke-width="1.5" />
         <span class="text-xxs leading-none">{{ label }}</span>
-      </Button>
+      </button>
     </aside>
-    <aside v-if="activeSidebarComponent" :style="{ width: leftSidebarWidth + 'px' }" class="overflow-hidden bg-card/60 border-r shrink-0">
-      <component :is="activeSidebarComponent.value" :key="editor.sidebarLeft" />
-    </aside>
+    <AnimatePresence>
+      <Motion layout :style="{ width: activeSidebarComponent ? (leftSidebarWidth + 'px') : '0px' }" :transition="{ default: { ease: 'spring' }, layout: { duration: 0.3 } }">
+        <aside v-if="activeSidebarComponent" :style="{ width: leftSidebarWidth + 'px' }" class="overflow-hidden bg-card/60 border-r shrink-0">
+          <component :is="activeSidebarComponent.value" :key="editor.sidebarLeft" />
+        </aside>
+      </Motion>
+    </AnimatePresence>
   </template>
 </template>

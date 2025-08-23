@@ -14,17 +14,18 @@ import { useMeasure } from '@/hooks/use-measure';
 
 import TimelineElementItem from './TimelineElementItem.vue';
 import TimelineAudioItem from './TimelineAudioItem.vue';
+import TimelineItem from './TimelineItem.vue';
 
 const SEEK_TIME_WIDTH = 42;
 const HANDLE_WIDTH = 16;
 
 const editor = useEditorStore();
 const canvasStore = useCanvasStore();
-const { canvas, timeline, animations, elements } = storeToRefs(canvasStore);
+const { canvas, timeline, animations, elements, selection, audio } = storeToRefs(canvasStore);
 const [containerRef, dimensions] = useMeasure();
 // const canvas = editor.canvas;
 watch(canvas, () => {
-  console.log("canvas", canvas);
+  // console.log("canvas", canvas);
   forceUpdate();
 });
 
@@ -38,7 +39,7 @@ const trackBackgroundWidth = computed(() => Math.max(dimensions.value.width, (du
 const timelineAmount = computed(() => Math.floor(trackBackgroundWidth.value / SEEK_TIME_WIDTH));
 
 const forceUpdate = () => {
-  seekTimeInSeconds; durationInSeconds; disabled; trackWidth; trackBackgroundWidth; timelineAmount
+  // seekTimeInSeconds; durationInSeconds; disabled; trackWidth; trackBackgroundWidth; timelineAmount
 };
 
 const onSeek = (x: number) => {
@@ -70,6 +71,9 @@ const onDrag = (x, y) => {
   if(seek > durationInSeconds.value){
     return false;
   }
+  else if (seek < 0){
+    return false;
+  }
   timeline.value?.set("seek", seek);
   forceUpdate();
 };
@@ -82,6 +86,25 @@ const controls = useDragControls();
 //   // canvas.timeline.setSeek(seek);
 //   canvas.timeline.set("seek", seek);
 // };
+
+const onSelectTrack = (event, item) => {
+  // console.log("onSelectTrack", item, disabled);
+  if(disabled.value){
+    return
+  }
+
+  selection.value?.selectObjectByName(item.name, event.shiftKey);
+  // if(item.type == 'audio' || !item.type){
+  //   selection.value?.selectAudio(item);
+  // }
+  // else{
+  //   selection.value?.selectObjectByName(item.name, event.shiftKey);  
+  // }
+};
+
+// watch([audio, elements], (values) => {
+//   console.log("Elements", values);
+// });
 
 </script>
 
@@ -108,18 +131,21 @@ const controls = useDragControls();
         :x="seekTimeInSeconds * SEEK_TIME_WIDTH"
         :y="0"
         :w="1"
-        :parent="true"
         :z="999"
         :resizable="false"
         :onDrag="onDrag"
-        class="!h-full"
+        class="!h-full absolute top-0"
         @activated="(event) => controls.start(controls)"
       >
         <div :class="cn('h-full w-1 bg-blue-400 dark:bg-primary z-20', disabled ? 'cursor-not-allowed' : 'cursor-ew-resize')" />
       </VueDraggable>
       <div class="absolute top-8 py-2.5 bottom-0 overflow-y-scroll scrollbar-hidden flex flex-col gap-1" :style="{ width: `${trackBackgroundWidth}px` }">
-        <TimelineElementItem v-for="element in [...canvas.elements].reverse()" :key="element.name" :element="element" :track-width="trackWidth" />
-        <TimelineAudioItem v-for="audio in [...canvas.audio.elements].reverse()" :key="audio.id" :audio="audio" :track-width="trackWidth" />
+        <!--<TimelineElementItem v-for="element in [...elements].reverse()" :key="element.name" :element="element" :track-width="trackWidth" @click="(event) => onSelectTrack(event, element)"/>
+        <TimelineAudioItem v-for="audio in [...audio.elements].reverse()" :key="audio.id" :audio="audio" :track-width="trackWidth" @click="(event) => onSelectTrack(event, element)"/>-->
+        <template v-for="element in [...elements].reverse()" :key="element.name">
+          <TimelineItem :element="element" :track-width="trackWidth" :type="element.type" @click="(event) => onSelectTrack(event, element)"/>
+        </template>
+        <!--<TimelineItem v-for="element in [...audio.elements].reverse()" :key="element.id" :element="element" :track-width="trackWidth" type="audio" @click="(event) => onSelectTrack(event, element)"/>-->
       </div>
     </div>
   </div>

@@ -1,4 +1,4 @@
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 
 export class CanvasHotkeys {
   private _canvas: Canvas;

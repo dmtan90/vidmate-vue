@@ -1,6 +1,6 @@
 import { propertiesToInclude } from "@/fabric/constants";
 import { FabricUtils } from "@/fabric/utils";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 import type { EditorAudioElement, EditorTrim } from "@/types/editor";
 
 export class CanvasTrimmer {
@@ -65,7 +65,8 @@ export class CanvasTrimmer {
     if (!object) return;
     if (FabricUtils.isVideoElement(object)) {
       const video = this.canvas.getItemByName(object.name) as fabric.Video;
-      const clone: fabric.Video = await this._canvas.cloner.clone(video);
+      // @ts-expect-error
+      const clone: fabric.Video = await this._canvas.cloner.clone(video as fabric.Object);
       return clone;
     }
   }

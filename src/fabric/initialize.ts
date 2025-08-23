@@ -3,6 +3,9 @@ import "@/fabric/cropper";
 import "@/fabric/textbox";
 import "@/fabric/video";
 import "@/fabric/charts";
+import "@/fabric/gif";
+import "@/fabric/audio";
+// import "@/fabric/visual";
 
 import { fabric } from "fabric";
 
@@ -283,5 +286,14 @@ fabric.Image.prototype.set({
     mb: false,
     ml: false,
     mr: false,
+  },
+});
+
+fabric.Audio.prototype.set({
+  _controlsVisibility: {
+    mt: true,
+    mb: true,
+    ml: true,
+    mr: true,
   },
 });

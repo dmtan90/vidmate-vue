@@ -1,3 +1,4 @@
+import axios from "axios";
 import { api } from "@/config/api";
 import { type EditorProduct } from "@/schema/adapter";
 import { useQuery } from "@tanstack/vue-query";

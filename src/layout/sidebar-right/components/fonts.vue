@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Search, X } from 'lucide-vue-next';
-
-import Button from '@/components/ui/button.vue';
-import Input from '@/components/ui/input.vue';
+import { Search, Close as X } from '@icon-park/vue-next';
 
 import { fonts } from '@/constants/fonts';
 
@@ -16,7 +13,6 @@ import FontItem from './FontItem.vue';
 const editor = useEditorStore();
 const canvasStore = useCanvasStore();
 const { canvas, selectionActive: selected } = storeToRefs(canvasStore);
-// const selected = computed(() => editor.canvas.selection.active);
 
 const isFontSelected = (font: any) => {
   return selected.value?.fontFamily?.toLowerCase() === font.family.toLowerCase();
@@ -32,15 +28,18 @@ const handleChangeFontFamily = (font: any) => {
   <div class="h-full w-full">
     <div class="flex items-center h-14 border-b px-4 gap-2.5">
       <h2 class="font-semibold">Fonts</h2>
-      <Button size="icon" variant="outline" class="bg-card h-7 w-7 ml-auto" @click="editor.setActiveSidebarRight(null)">
+      <el-button plain circle class="bg-card h-7 w-7 ml-auto" @click="editor.setActiveSidebarRight(null)">
         <X :size="15" />
-      </Button>
+      </el-button>
     </div>
     <section class="sidebar-container">
       <div class="px-3 py-4">
         <div class="relative">
-          <Input placeholder="Search..." class="text-xs pl-8" />
-          <Search :size="15" class="absolute top-1/2 -translate-y-1/2 left-2.5 text-foreground/60" />
+          <el-input placeholder="Search..." class="text-xs" >
+            <template #prefix>
+              <Search :size="15" />
+            </template>
+          </el-input>
         </div>
       </div>
       <div class="px-3 pb-4 flex flex-col gap-1">

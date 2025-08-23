@@ -1,53 +1,88 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-
-import { Search, X, Plus } from 'lucide-vue-next';
-
-import Button from '@/components/ui/button.vue';
-import Input from '@/components/ui/input.vue';
-import TabsRoot from '@/components/ui/tabs-root.vue';
-import TabsContent from '@/components/ui/tabs-content.vue';
-import TabsList from '@/components/ui/tabs-list.vue';
-import TabsTrigger from '@/components/ui/tabs-trigger.vue';
-
+import { computed, ref, watch } from 'vue';
+import { Search, Close as X, Plus, Down as ChevronDown, FileCode as FileJson, FileHash as FileUser } from '@icon-park/vue-next';
 import { useEditorStore } from '@/store/editor';
-
-import CloudTemplateContent from './CloudTemplateContent.vue';
-import LocalTemplateContent from './LocalTemplateContent.vue';
+import { storeToRefs } from "pinia";
+import SceneThumbnail from "@/components/thumbnail/SceneThumbnail.vue";
 
 const editor = useEditorStore();
+const { pages, page } = storeToRefs(editor);
+const handleAddPage = () => {
+  editor.addPage();
+};
+
+const handleDeleteActivePage = () => {
+  editor.deleteActivePage();
+};
+
+const handleChangeActivePage = (value: string) => {
+  editor.onChangeActivePage(parseInt(value));
+};
+
+const isPlaying = computed(() => editor.canvas.timeline?.playing);
+
+const thumbnails = ref([]);
+// watch(editor.pages, (values) => {
+//   console.log(values);
+// })
 
 </script>
-
 <template>
   <div class="h-full w-full">
     <div class="flex items-center justify-between h-14 border-b px-4">
       <h2 class="font-semibold">Scenes</h2>
-      <Button
-        @click=""
-        class="text-xs h-7 w-7 rounded-md shadow-sm gap-1.5 border bg-card dark:bg-primary border-primary text-primary dark:text-black hover:bg-primary dark:hover:bg-blue-primary/90 hover:text-white"
-      >
-        <Plus :size="15" />
-        <span>Add</span>
-      </Button>
-      <Button size="icon" variant="outline" class="bg-card h-7 w-7" @click="editor.setActiveSidebarLeft(null)">
+      <el-button size="small" text bg circle class="bg-card h-7 w-7" @click="editor.setActiveSidebarLeft(null)">
         <X :size="16" />
-      </Button>
+      </el-button>
     </div>
     <section class="sidebar-container pb-4">
-      <div class="grid grid-cols-1 gap-x-2 gap-y-2 px-8">
-        <Button as-child size="sm" variant="outline" class="h-7 bg-card gap-1 pl-2 w-full">
-          <label>
-            <Plus :size="14" />
-            <span>Load JSON</span>
-          </label>
-        </Button>
-        <Button as-child size="sm" variant="outline" class="h-7 bg-card gap-1 pl-2 w-full opacity-50 pointer-events-none">
-          <label>
-            <Plus :size="14" />
-            <span>Load PSD</span>
-          </label>
-        </Button>
+      <!--<div class="px-3 pt-4 pb-6">
+        <el-input placeholder="Search..." class="text-xs" >
+          <template #prefix>
+            <Search :size="15" class="text-foreground/60" />
+          </template>
+        </el-input>
+      </div>-->
+      <div class="px-3 flex flex-col divide-y">
+        <div class="flex flex-col gap-4 py-6">
+          <div class="flex items-center justify-between gap-4">
+            <h4 class="text-xs font-semibold line-clamp-1">Templates</h4>
+            <el-button size="small" link class="text-primary h-6 font-medium line-clamp-1 px-1.5">
+              See All
+            </el-button>
+          </div>
+          <div class="flex gap-2.5 items-center overflow-x-scroll scrollbar-hidden relative divider-y">
+            <el-skeleton v-for="(_, index) in 3" :key="index" animated class="h-16 flex-1 rounded-md" />
+            <span class="text-xs font-semibold text-foreground/60 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">Coming Soon</span>
+          </div>
+        </div>
+        <div class="flex flex-col gap-4 py-6">
+          <div class="flex items-center justify-between gap-4">
+            <h4 class="text-xs font-semibold line-clamp-1">Scenes</h4>
+            <el-button-group class="ml-auto">
+              <el-button type="primary" text bg round class="gap-2" @click="handleAddPage">
+                <Plus :size="15" />
+                <span class="font-medium">Add</span>
+              </el-button>
+              <el-dropdown placement="bottom-end">
+                <el-button type="primary" text bg round>
+                  <ChevronDown :size="15" />
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item :icon="FileJson">Load JSON</el-dropdown-item>
+                    <el-dropdown-item :icon="FileUser">PPTX/PDF</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </el-button-group>
+          </div>
+          <div class="px-3 grid grid-cols-1 gap-4 items-center overflow-y-scroll scrollbar-hidden relative divider-y">
+            <button v-for="(_, index) in editor.pages" :key="index" shadow="hover" class="w-full h-32 rounded-lg overflow-hidden group border" :style="{'border': index == page ? '2px solid var(--el-color-primary) !important' : ''}" @click="handleChangeActivePage(index)">
+              <SceneThumbnail :page="index" />
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   </div>

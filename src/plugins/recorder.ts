@@ -1,10 +1,12 @@
+// @ts-ignore
+import { markRaw } from "vue";
 import anime from "animejs";
 import { fabric } from "fabric";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 
 import { FabricUtils } from "@/fabric/utils";
 import { createInstance, createPromise, createUint8Array, wait } from "@/lib/utils";
-import { type Editor } from "@/store/editor";
+import { Editor } from "@/plugins/editor";
 import { propertiesToInclude } from "@/fabric/constants";
 import { convertBlobToFile, dataURLToUInt8Array } from "@/lib/media";
 import { fetchExtensionByCodec } from "@/constants/recorder";
@@ -15,14 +17,13 @@ export class Recorder {
 
   instance!: fabric.StaticCanvas;
   timeline!: anime.AnimeTimelineInstance | null;
+  duration: number = 0;
 
-  constructor(editor: Editor) {
-    // console.log("Recorder", editor);
+  constructor(editor: any) {
     this.editor = editor;
   }
 
   private get canvas() {
-    console.log(this.editor.canvas);
     return this.editor.canvas.instance!;
   }
 
@@ -40,6 +41,74 @@ export class Recorder {
 
   private get animations() {
     return this.editor.canvas.animations;
+  }
+
+  private get contents() {
+    let canvas = [], timelines = [], animations = [], duration = 0;
+    for(let i = 0; i < this.editor.pages.length; i++){
+      let page = this.editor.pages[i];
+      canvas.push(page.instance);
+      timelines.push(page.timeline);
+      animations.push(page.animations);
+      duration += page.timeline.duration;
+    }
+
+    return {
+      canvas: canvas,
+      timelines: timelines,
+      animations: animations,
+      duration: duration,
+      scenes: this.editor.pages.length
+    };
+  }
+
+  private buildExportContent(){
+    const contents = this.contents;
+    console.log("buildExportContent", contents);
+    let jsonObjects = [];
+    let startDuration = 0;
+    for(let i = 0; i < contents.scenes; i++){
+      const canvas = contents.canvas[i];
+      const timeline = contents.timelines[i];
+      canvas.fire("recorder:start");
+      const json = canvas.toDatalessJSON(propertiesToInclude);
+      //meta: {duration: 4835, offset: 165, blocks: Array(1)}
+      //anim: {in: {…}, scene: {…}, out: {…}, state: {…}}
+      //should update duration and offset of the objects to match new timeline
+      let offsetMs = startDuration;
+      for(let j = 0; j < json.objects.length; j++){
+        const object = json.objects[j];
+        const anim = object.anim;
+        if(anim.in && anim.in.offset != undefined){
+          anim.in.offset = anim.in.offset += offsetMs
+        }
+        if(anim.out && anim.out.offset != undefined){
+          anim.out.offset = anim.out.offset += offsetMs
+        }
+        if(anim.scene && anim.scene.offset != undefined){
+          anim.scene.offset = anim.scene.offset += offsetMs
+        }
+        if(anim.state && anim.state.offset != undefined){
+          anim.state.offset = anim.state.offset += offsetMs
+        }
+
+        const meta = object.meta;
+        // meta.duration = meta.duration + offsetMs;
+        meta.offset = meta.offset + offsetMs;
+
+        jsonObjects.push(object);
+      }
+
+      console.log(json);
+      canvas.fire("recorder:stop");
+      // jsonArray.push(json);
+      startDuration += timeline.duration;
+    }
+    const fabricVersion = fabric.version;
+    return {
+      json: {objects: jsonObjects, version: fabricVersion },
+      duration: contents.duration
+    }
   }
 
   private async _toggleElement(object: fabric.Object, ms: number) {
@@ -61,7 +130,7 @@ export class Recorder {
   }
 
   initialize(element: HTMLCanvasElement) {
-    this.instance = createInstance(fabric.StaticCanvas, element, { renderOnAddRemove: false });
+    this.instance = markRaw(createInstance(fabric.StaticCanvas, element, { renderOnAddRemove: false }));
   }
 
   async compile(frames: Uint8Array[], { ffmpeg, fps = "60", codec = "H.264", audio, signal }: { ffmpeg: FFmpeg; fps?: string; codec?: string; signal?: AbortSignal; audio?: Blob }) {
@@ -88,11 +157,13 @@ export class Recorder {
         const buffer: ArrayBuffer = await audio.arrayBuffer();
         await ffmpeg.writeFile(music, createUint8Array(buffer), { signal });
         await ffmpeg.exec(["-framerate", fps, "-i", pattern, "-i", music, "-c:v", command, "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", output], undefined, { signal });
+        // @ts-expect-error
         const data: Uint8Array = await ffmpeg.readFile(output, undefined, { signal });
         return createInstance(Blob, [data.buffer], { type: mimetype });
       }
 
       await ffmpeg.exec(["-framerate", fps, "-i", pattern, "-c:v", command, "-preset", "ultrafast", "-pix_fmt", "yuv420p", output], undefined, { signal });
+      // @ts-expect-error
       const data: Uint8Array = await ffmpeg.readFile(output, undefined, { signal });
       return createInstance(Blob, [data.buffer], { type: mimetype });
     } finally {
@@ -106,8 +177,8 @@ export class Recorder {
           await ffmpeg.deleteFile(music);
           await ffmpeg.deleteFile(temporary);
         }
-      } catch {
-        console.warn("FFMPEG - Failed to perform cleanup");
+      } catch(err) {
+        console.warn("FFMPEG - Failed to perform cleanup", err);
       }
     }
   }
@@ -115,10 +186,11 @@ export class Recorder {
   async capture(fps: number, { progress, signal }: { progress?: (value: { progress: number; frame: string }) => void; signal?: AbortSignal }) {
     const interval = 1000 / fps;
     const frames: Uint8Array[] = [];
-    const count = this.preview.duration / interval;
+    const duration = this.duration;//this.preview.duration
+    const count = duration / interval;
 
     for (let frame = 0; frame < count; frame++) {
-      const seek = frame === count - 1 ? this.preview.duration : (frame / count) * this.preview.duration;
+      const seek = frame === count - 1 ? duration : (frame / count) * duration;
       this.timeline!.seek(seek);
       await Promise.all([this._toggleElements(seek), wait(0.1)]);
 
@@ -134,6 +206,7 @@ export class Recorder {
   }
 
   async screenshot(canvas = this.canvas) {
+    let ms = (new Date()).getTime();
     this.instance.setDimensions({ height: this.workspace.height, width: this.workspace.width });
     this.instance.clear();
 
@@ -143,6 +216,7 @@ export class Recorder {
     const artboard: fabric.Object = await createPromise<fabric.Object>((resolve) => this.artboard.clone((clone: fabric.Object) => resolve(clone), propertiesToInclude));
     this.instance.insertAt(artboard, 0, false);
     this.instance.clipPath = artboard;
+    this.instance.renderAll();
 
     FabricUtils.applyTransformationsAfterLoad(this.instance);
     this.instance.renderAll();
@@ -152,28 +226,43 @@ export class Recorder {
       .then((response) => response.thumbnail)
       .catch(() => this.instance.toDataURL({ format: "image/png" }));
     this.instance.clear();
+    console.log("screenshot cost", (new Date()).getTime() - ms);
 
     return source;
   }
 
   async start() {
     console.log("start");
-    this.canvas.fire("recorder:start");
+    // this.canvas.fire("recorder:start");
+    // this.instance.setDimensions({ height: this.workspace.height, width: this.workspace.width });
+    // this.instance.clear();
+
+    // const json = this.canvas.toDatalessJSON(propertiesToInclude);
+    // await createPromise<void>((resolve) => this.instance.loadFromJSON(json, resolve));
+
+    // const artboard: fabric.Object = await createPromise<fabric.Object>((resolve) => this.artboard.clone((clone: fabric.Object) => resolve(clone), propertiesToInclude));
+    // this.instance.insertAt(artboard, 0, false);
+    // this.instance.clipPath = artboard;
+
+    // FabricUtils.applyTransformationsAfterLoad(this.instance);
+    // this.instance.renderAll();
+
+    // this.timeline = anime.timeline({ duration: this.preview.duration, loop: false, autoplay: false, update: this.instance.renderAll.bind(this.instance) });
+    // this.animations.initialize(this.instance, this.timeline, this.preview.duration);
+    const data = this.buildExportContent();
     this.instance.setDimensions({ height: this.workspace.height, width: this.workspace.width });
     this.instance.clear();
-
-    const json = this.canvas.toDatalessJSON(propertiesToInclude);
-    await createPromise<void>((resolve) => this.instance.loadFromJSON(json, resolve));
-
+    await createPromise<void>((resolve) => this.instance.loadFromJSON(data.json, resolve));
     const artboard: fabric.Object = await createPromise<fabric.Object>((resolve) => this.artboard.clone((clone: fabric.Object) => resolve(clone), propertiesToInclude));
     this.instance.insertAt(artboard, 0, false);
     this.instance.clipPath = artboard;
 
     FabricUtils.applyTransformationsAfterLoad(this.instance);
     this.instance.renderAll();
+    this.duration = data.duration;
 
-    this.timeline = anime.timeline({ duration: this.preview.duration, loop: false, autoplay: false, update: this.instance.renderAll.bind(this.instance) });
-    this.animations.initialize(this.instance, this.timeline, this.preview.duration);
+    this.timeline = anime.timeline({ duration: this.duration, loop: false, autoplay: false, update: this.instance.renderAll.bind(this.instance) });
+    this.animations.initialize(this.instance, this.timeline, this.duration);
   }
 
   stop() {

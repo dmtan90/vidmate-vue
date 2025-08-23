@@ -37,6 +37,8 @@ export interface EditorAudio {
   duration: number;
 }
 
+import type { PropsBarsType, PropsCircleType, PropsLineType, PropsMediaType, PropsWaveformType, VisualType } from "audio-visual";
+
 export interface EditorAudioElement {
   id: string;
   url: string;
@@ -50,6 +52,9 @@ export interface EditorAudioElement {
   playing: boolean;
   trim: number;
   timeline: number;
+  visualEnabled: boolean;
+  visualType: VisualType;
+  visualProps: PropsBarsType | PropsCircleType | PropsLineType | PropsMediaType | PropsWaveformType;
 }
 
 export interface EditorTrimVideo {

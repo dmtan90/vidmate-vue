@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="absolute opacity-100 z-1">
     <canvas ref="refCanvas" />
   </div>
 </template>

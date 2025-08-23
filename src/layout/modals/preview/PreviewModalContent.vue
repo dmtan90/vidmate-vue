@@ -1,21 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
-
-import Button from '@/components/ui/button.vue';
-import Progress from '@/components/ui/progress.vue';
+import { Forbid as Ban, CheckOne as CircleCheckBig, Close, Export } from '@icon-park/vue-next';
 import Spinner from '@/components/ui/spinner.vue';
 import Label from '@/components/ui/label.vue';
-import SelectRoot from '@/components/ui/select-root.vue';
-import SelectContent from '@/components/ui/select-content.vue';
-import SelectItem from '@/components/ui/select-item.vue';
-import SelectTrigger from '@/components/ui/select-trigger.vue';
-import SelectValue from '@/components/ui/select-value.vue';
-import Input from '@/components/ui/input.vue';
 
 import { useEditorStore } from '@/store/editor';
-import { ExportProgress, type ExportMode } from '@/store/editor';
-import { createFileDownload } from '@/lib/utils';
+import { ExportProgress, type ExportMode } from '@/plugins/editor';
+import { createFileDownload, createFileDownloads } from '@/lib/utils';
 import { codecs, fetchExtensionByCodec, fps } from '@/constants/recorder';
 
 import ProgressIcon from './ProgressIcon.vue';
@@ -25,12 +17,18 @@ const editor = useEditorStore();
 
 const codec = computed(() => fetchExtensionByCodec(editor.codec));
 const progress = computed(() => editor.progress.capture * 0.4 + editor.progress.compile * 0.6);
+const videoSource = ref(editor.blob ? URL.createObjectURL(editor.blob) : null);
 
 const handleExportVideo = async () => {
   try {
+    if(videoSource.value){
+      URL.revokeObjectURL(videoSource.value);
+    }
+    videoSource.value = null;
     const blob = await editor.exportVideo();
     const file = (editor.file || "output") + "." + codec.value.extension;
     createFileDownload(blob, file);
+    videoSource.value = URL.createObjectURL(blob);
   } catch (e) {
     const error = e as Error;
     console.warn(error);
@@ -38,16 +36,57 @@ const handleExportVideo = async () => {
   }
 };
 
+const exportFps = computed({
+  get(){
+    return editor.fps;
+  },
+
+  set(value){
+    editor.onChangeExportFPS(value);
+  }
+});
+
+const exportCodec = computed({
+  get(){
+    return editor.codec;
+  },
+
+  set(value){
+    editor.onChangeExportCodec(value);
+  }
+});
+
+const fileName = computed({
+  get(){
+    return editor.file;
+  },
+
+  set(value){
+    editor.onChangeFileName(value);
+  }
+});
+
+const exportMode = computed({
+  get(){
+    return editor.exports;
+  },
+
+  set(value){
+    editor.onChangeExportMode(value);
+  }
+});
+
 </script>
 
 <template>
   <div class="grid grid-cols-12 gap-6">
     <div class="col-span-12 md:col-span-7">
       <div class="relative flex items-center justify-center h-64 sm:h-96 p-3 w-full bg-transparent-pattern">
-        <video v-if="editor.blob" controls class="h-full w-full object-contain">
-          <source :src="URL.createObjectURL(editor.blob)" :type="codec.mimetype" />
+        <video v-if="videoSource" controls class="h-full w-full object-contain">
+          <source :src="videoSource" :type="codec.mimetype" />
         </video>
         <img v-else-if="editor.frame" :src="editor.frame" alt="preview" class="h-full w-full object-contain" />
+        <el-empty v-else :image-size="200" description="Start to export your video"/>
       </div>
     </div>
     <div class="col-span-12 md:col-span-5 flex flex-col gap-6">
@@ -56,71 +95,83 @@ const handleExportVideo = async () => {
         <div class="flex flex-col px-2.5 pt-3.5 gap-3">
           <div class="grid grid-cols-12 items-center">
             <Label class="text-xs col-span-3">FPS</Label>
-            <SelectRoot v-model="editor.fps" @update:model-value="editor.onChangeExportFPS">
-              <SelectTrigger class="text-xs w-36 col-span-9 h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="f in fps" :key="f" :value="f" class="text-xs">
-                  {{ f }}
-                </SelectItem>
-              </SelectContent>
-            </SelectRoot>
+            <div class="flex col-span-9">
+              <el-select v-model="exportFps" class="w-full">
+                <el-option v-for="f in fps" :key="f" :value="f" :label="f" />
+              </el-select>
+            </div>
           </div>
           <div class="grid grid-cols-12 items-center">
             <Label class="text-xs col-span-3">Codec</Label>
-            <SelectRoot v-model="editor.codec" @update:model-value="editor.onChangeExportCodec">
-              <SelectTrigger class="text-xs w-36 col-span-9 h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="c in codecs" :key="c" :value="c" class="text-xs">
-                  {{ c }}
-                </SelectItem>
-              </SelectContent>
-            </SelectRoot>
+            <div class="flex col-span-9">
+              <el-select v-model="exportCodec" class="w-full">
+                <el-option v-for="c in codecs" :key="c" :value="c" :label="c" />
+              </el-select>
+            </div>
           </div>
           <div class="grid grid-cols-12 items-center">
             <Label class="text-xs col-span-3">File Name</Label>
             <div class="flex col-span-9">
-              <Input :value="editor.file" @update:model-value="editor.onChangeFileName" class="flex-1 text-xs h-8 rounded-r-none max-w-72" placeholder="output" />
-              <div class="shrink-0 text-xs h-8 px-3 border grid place-items-center rounded-md rounded-l-none shadow-sm text-muted-foreground w-16">.{{ codec.extension }}</div>
+              <el-input v-model="fileName" class="w-full" placeholder="output">
+                <template #suffix>
+                  <span>.{{ codec.extension }}</span>
+                </template>
+              </el-input>
             </div>
           </div>
           <div class="grid grid-cols-12 items-center">
             <Label class="text-xs col-span-3">Exports</Label>
-            <SelectRoot v-model="editor.exports" @update:model-value="editor.onChangeExportMode">
-              <SelectTrigger class="text-xs w-44 col-span-9 h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="both" class="text-xs">
-                  Video with Audio
-                </SelectItem>
-                <SelectItem value="video" class="text-xs">
-                  Video Only
-                </SelectItem>
-              </SelectContent>
-            </SelectRoot>
+            <div class="flex col-span-9">
+              <el-select v-model="exportMode" class="w-full">
+                <el-option value="both" label="Video with Audio" />
+                <el-option value="video" label="Video Only" />
+              </el-select>
+            </div>
           </div>
         </div>
       </div>
       <div class="flex flex-col gap-4 mt-auto">
         <div v-if="editor.exporting > ExportProgress.None" class="flex flex-col relative">
-          <Progress :value="progress" class="h-7 rounded-md bg-gray-300" />
-          <div class="text-xxs absolute top-1/2 -translate-y-1/2 left-2 flex items-center gap-2">
-            <ProgressIcon :progress="editor.exporting" />
-            <ProgressText :progress="editor.exporting" />
-          </div>
+          <el-progress :percentage="progress < 100 ? progress : 100" :stroke-width="20" :text-inside="true" class="">
+            <span class="flex items-center">
+              <template v-if="editor.exporting === ExportProgress.Error">
+                <Ban class="h-4 w-4" />
+              </template>
+              <template v-else-if="editor.exporting === ExportProgress.Completed">
+                <CircleCheckBig class="h-4 w-4" />
+              </template>
+              <template v-else-if="editor.exporting === ExportProgress.None">
+                <!-- Render nothing -->
+              </template>
+              <template v-else>
+                <Spinner class="h-4 w-4" />
+              </template>
+              <template v-if="editor.exporting == ExportProgress.Error">
+                Error
+              </template>
+              <template v-else-if="editor.exporting == ExportProgress.Completed">
+                Completed
+              </template>
+              <template v-else-if="editor.exporting == ExportProgress.CaptureAudio">
+                In Progress - Capturing Audio
+              </template>
+              <template v-else-if="editor.exporting == ExportProgress.CaptureVideo">
+                In Progress - Capturing Video
+              </template>
+              <template v-else-if="editor.exporting == ExportProgress.CompileVideo">
+                In Progress - Compiling Media
+              </template>
+            </span>
+          </el-progress>
         </div>
         <div class="flex flex-row gap-4">
-          <Button variant="outline" class="flex-1 text-xs" @click="editor.onTogglePreviewModal('close')">
+          <el-button text bg round @click="editor.onTogglePreviewModal('close')" :icon="Close">
             <span v-if="editor.exporting > ExportProgress.Completed">Cancel Export</span>
             <span v-else>Close</span>
-          </Button>
-          <Button :disabled="editor.exporting > ExportProgress.Completed" variant="default" class="flex-1 text-xs bg-primary hover:bg-primary/90" @click="handleExportVideo">
+          </el-button>
+          <el-button :disabled="editor.exporting > ExportProgress.Completed" type="primary" text bg round @click="handleExportVideo" :icon="Export">
             Start Export
-          </Button>
+          </el-button>
         </div>
       </div>
     </div>

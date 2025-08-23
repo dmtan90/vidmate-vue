@@ -1,5 +1,5 @@
-import { env } from "@xenova/transformers";
+import { env } from "@huggingface/transformers";
 
-env.allowLocalModels = true;
-env.allowRemoteModels = false;
+env.allowLocalModels = false;
+env.allowRemoteModels = true;
 env.backends.onnx.wasm.proxy = true;

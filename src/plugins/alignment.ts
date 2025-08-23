@@ -1,5 +1,5 @@
 import { createInstance } from "@/lib/utils";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 import { fabric } from "fabric";
 
 export class CanvasAlignment {

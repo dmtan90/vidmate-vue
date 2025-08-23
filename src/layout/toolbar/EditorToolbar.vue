@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, ref, watch, markRaw } from 'vue';
+import { computed, shallowRef, ref, watch, markRaw, onMounted } from 'vue';
 import { useEditorStore } from '@/store/editor';
 import { useIsTablet } from '@/hooks/use-media-query';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,7 @@ import TrimToolbar from './components/trim.vue';
 const toolbarComponentMap: Record<string, any> = {
   textbox: TextToolbar,
   image: ImageToolbar,
+  gif: ImageToolbar,
   video: VideoToolbar,
   triangle: ShapeToolbar,
   path: ShapeToolbar,
@@ -39,10 +40,7 @@ const { selectionActive, cropperActive, trimmerActive } = storeToRefs(canvasStor
 // const active = canvasStore.active;
 const isTablet = useIsTablet();
 const Toolbar = ref(null);
-// const cropperActive = computed(() => canvasStore.cropperActive);
-// const trimmerActive = computed(() => canvasStore.trimmerActive);
-watch([selectionActive, cropperActive, trimmerActive], (value) => {
-  // console.log("selectionActive", value);
+const computeToolbar = () => {
   if(selectionActive.value){
     let template = null;
     // const canvas = editor.canvas;
@@ -62,8 +60,17 @@ watch([selectionActive, cropperActive, trimmerActive], (value) => {
   else{
     Toolbar.value = null;
   }
+};
+// const cropperActive = computed(() => canvasStore.cropperActive);
+// const trimmerActive = computed(() => canvasStore.trimmerActive);
+watch([selectionActive, cropperActive, trimmerActive], (value) => {
+  // console.log("selectionActive", value);
+  computeToolbar();
 });
 
+onMounted(() => {
+  computeToolbar();
+});
 // watch(canvasStore, (value) => {
 //   // let { canvas, selection } = storeToRefs(canvasStore);
 //   // let { selectionActive, cropperActive, trimmerActive } = storeToRefs(canvasStore);

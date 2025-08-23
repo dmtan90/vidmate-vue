@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch, onUnmounted } from 'vue';
-import { Check, ChevronLeft, ChevronRight, Play } from 'lucide-vue-next';
+import { Check, Left as ChevronLeft, Right as ChevronRight, Play } from '@icon-park/vue-next';
 import { floor } from 'lodash';
 import VueDraggable from 'vue-draggable-resizable'
 
-import Button from '@/components/ui/button.vue';
-import Input from '@/components/ui/input.vue';
+import { ElButton, ElInput } from 'element-plus';
 
 import { useEditorStore } from '@/store/editor';
 import { cn } from '@/lib/utils';
@@ -61,11 +60,11 @@ const style = computed(() => ({
 <template>
   <div class="flex items-center h-full w-full overflow-x-scroll scrollbar-hidden pr-12">
     <div class="flex items-center gap-2">
-      <Button size="sm" variant="ghost">
+      <el-button type="primary" text bg circle>
         <Play :size="15" class="" fill="#000000" />
-      </Button>
+      </el-button>
       <div class="relative">
-        <Input class="h-8 text-xs w-24 pr-8" :value="floor(absoluteDuration, 1)" readonly />
+        <el-input class="h-8 text-xs w-24 pr-8" :model-value="floor(absoluteDuration, 1)" readonly />
         <span class="absolute text-gray-500 text-xs right-2.5 top-1/2 -translate-y-1/2 font-medium">s</span>
       </div>
     </div>
@@ -105,9 +104,9 @@ const style = computed(() => ({
         </VueDraggable>
       </div>
     </div>
-    <Button size="sm" class="gap-1.5 pl-2.5 bg-primary hover:bg-primary/90" @click="handleChanges">
+    <el-button type="primary" text bg round class="gap-1.5 pl-2.5 hover:bg-primary/90" @click="handleChanges">
       <Check :size="15" />
       <span>Done</span>
-    </Button>
+    </el-button>
   </div>
 </template>

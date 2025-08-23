@@ -1,8 +1,7 @@
 import { fabric } from "fabric";
-
 import { FabricUtils } from "@/fabric/utils";
 import { createPromise } from "@/lib/utils";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 import type { EditorTemplatePage } from "@/types/editor";
 
 export class CanvasTemplate {
@@ -14,7 +13,6 @@ export class CanvasTemplate {
     this._canvas = canvas;
     this.status = "idle";
     this.page = null;
-    // makeAutoObservable(this);
   }
 
   private get canvas() {
@@ -57,11 +55,11 @@ export class CanvasTemplate {
     return !(this.status === "completed" || this.status === "error") && !!this.page;
   }
 
-  private *_scene() {
+  private async _scene() {
     this.canvas.clear();
     this.timeline.destroy();
 
-    this.workspace.changeFill("#CCCCCC");
+    this.workspace.changeFill(this.page!.data.file || "#CCCCCC");
     this.workspace.resizeArtboard({ height: this.page!.data.height, width: this.page!.data.width });
 
     this.canvas.add(this.artboard);
@@ -99,27 +97,26 @@ export class CanvasTemplate {
   }
 
   async load() {
+    console.log("Load template", this.page);
     return createPromise<void>((resolve, reject) => {
-      runInAction(() => {
-        this.status = "pending";
-        if (!this.page) {
-          this.status = "error";
-          reject();
-        } else {
-          this.audio.elements = [];
-          this._canvas.elements = [];
+      this.status = "pending";
+      if (!this.page) {
+        this.status = "error";
+        reject();
+      } else {
+        this.audio.elements = [];
+        this._canvas.elements = [];
 
-          this._canvas.id = this.page.id;
-          this._canvas.name = this.page.name;
+        this._canvas.id = this.page.id;
+        this._canvas.name = this.page.name;
 
-          this.cropper.active = null;
-          this.selection.active = null;
+        this.cropper.active = null;
+        this.selection.active = null;
 
-          Promise.all([this.audio.initialize(this.page!.data.audios), this._scene()])
-            .then(() => resolve())
-            .catch(() => reject());
-        }
-      });
+        Promise.all([this.audio.initialize(this.page!.data.audios), this._scene()])
+          .then(() => resolve())
+          .catch(() => reject());
+      }
     });
   }
 }

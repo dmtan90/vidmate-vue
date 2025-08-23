@@ -2,7 +2,7 @@ import { fabric } from "fabric";
 
 import { FabricUtils } from "@/fabric/utils";
 import { createInstance, isVideoElement } from "@/lib/utils";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 
 export class CanvasCropper {
   private _canvas: Canvas;

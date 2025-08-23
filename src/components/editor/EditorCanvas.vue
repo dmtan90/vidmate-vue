@@ -19,23 +19,17 @@ const canvasStore = useCanvasStore();
 const refCanvas = ref(null);
 const { page } = storeToRefs(editor);
 
-// const { initializeCanvas } = canvasStore.initializeCanvas(props.page);
-onMounted(() => {
-  // const canvas = document.getElementById('canvas-' + props.page);
-  if(refCanvas.value){
-    canvasStore.initializeCanvas(refCanvas.value, props.page);  
+watch(refCanvas, (canvas) => {
+  if(canvas){
+    canvasStore.initializeCanvas(editor.pages[props.page], canvas);  
   }
-});
-
-watch(page, (value) => {
-  console.log("page", value);
 });
 
 </script>
 
 <template>
   <div :class="cn('absolute', page !== props.page ? 'opacity-0 z-0' : 'opacity-100 z-10')">
-    <canvas ref="refCanvas" :id="`canvas-${props.page}`" />
+    <canvas ref="refCanvas" />
     <EditorActivityIndicator :pending="editor.pages[props.page]?.template?.pending" />
   </div>
 </template>

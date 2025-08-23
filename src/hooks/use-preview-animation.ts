@@ -1,14 +1,13 @@
-import { ref, onMounted, onBeforeUnmount, watch } from "vue";
-import { useEditorStore } from "@/store/editor";
+import { onMounted, onBeforeUnmount, watch } from "vue";
 import { debounce } from "lodash";
 import { useCanvasStore } from "@/store/canvas";
 import { storeToRefs } from "pinia";
 
-export function usePreviewAnimation(element, type) {
+export function usePreviewAnimation(element: any, type: any) {
   console.log("usePreviewAnimation", element);
-  let object = null;
+  let object: any = null;
   let anim = JSON.stringify(element?.anim ?? {});
-  const editor = useEditorStore();
+  // const editor = useEditorStore();
   const canvasStore = useCanvasStore();
   const { animations, selectionActive: active, instance } = storeToRefs(canvasStore);
 
@@ -31,7 +30,7 @@ export function usePreviewAnimation(element, type) {
     previewAnimation(object);
   });
 
-  watch(active, (value) => {
+  watch(active, (value: any) => {
     if(active.value && anim != JSON.stringify(active.value.anim)){
       anim = JSON.stringify(active.value.anim);
       // destroy();

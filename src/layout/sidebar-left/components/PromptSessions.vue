@@ -3,9 +3,8 @@ import { computed, ref } from 'vue';
 import { useMutation } from '@tanstack/vue-query';
 import { toast } from 'vue-sonner';
 
-import { Plus, Search } from 'lucide-vue-next';
-import Button from '@/components/ui/button.vue';
-import Input from '@/components/ui/input.vue';
+import { Plus, Search } from '@icon-park/vue-next';
+import { ElButton, ElInput } from 'element-plus';
 
 import { useEditorStore } from '@/store/editor';
 import { PromptSession } from '@/types/prompt';
@@ -23,25 +22,26 @@ const handleLoadPromptSession = async (session: PromptSession) => {
 
 <template>
   <section class="sidebar-container py-4 px-3.5">
-    <div class="relative">
-      <Input placeholder="Search..." class="text-xs pl-8" />
-      <Search :size="15" class="absolute top-1/2 -translate-y-1/2 left-2.5 text-foreground/60" />
-    </div>
+    <el-input placeholder="Search..." class="text-xs" >
+      <template #prefix>
+        <Search :size="15" class="text-foreground/60" />
+      </template>
+    </el-input>
     <div class="my-3.5">
-      <Button size="sm" class="gap-1 pl-2 w-full" @click="emit('create-session')">
+      <el-button size="small" class="gap-1 pl-2 w-full" @click="emit('create-session')">
         <Plus :size="15" />
         <span>Create Prompt</span>
-      </Button>
+      </el-button>
     </div>
     <div class="flex flex-col gap-1">
       <div class="flex items-center justify-between gap-4">
         <h4 class="text-xs font-semibold line-clamp-1">Sessions</h4>
-        <Button size="sm" variant="link" class="text-primary h-6 font-medium line-clamp-1 px-1.5">
+        <el-button size="small" type="text" class="text-primary h-6 font-medium line-clamp-1 px-1.5">
           See All
-        </Button>
+        </el-button>
       </div>
       <div class="flex flex-col">
-        <Button v-for="session in editor.prompter.sessions.values()" :key="session.id" size="sm" variant="outline" class="w-full h-auto py-2.5 px-4 gap-0.5 flex flex-col items-start" @click="handleLoadPromptSession(session)">
+        <el-button v-for="session in editor.prompter.sessions.values()" :key="session.id" size="small" type="info" class="w-full h-auto py-2.5 px-4 gap-0.5 flex flex-col items-start" @click="handleLoadPromptSession(session)">
           <span class="line-clamp-1">
             <span class="font-semibold">Prompt: </span>
             <span>{{ session.prompt }}</span>
@@ -54,7 +54,7 @@ const handleLoadPromptSession = async (session: PromptSession) => {
             <span class="font-semibold">Format: </span>
             <span class="capitalize">{{ session.format }}</span>
           </span>
-        </Button>
+        </el-button>
       </div>
     </div>
   </section>

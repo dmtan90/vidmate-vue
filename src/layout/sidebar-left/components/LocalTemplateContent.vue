@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { watch, computed, ref } from 'vue';
 import { useMutation } from '@tanstack/vue-query';
 import { toast } from 'vue-sonner';
+import { storeToRefs } from "pinia";
 
-import { Plus } from 'lucide-vue-next';
-import Button from '@/components/ui/button.vue';
-import Skeleton from '@/components/ui/skeleton.vue';
+import { Plus } from '@icon-park/vue-next';
+import { ElButton, ElSkeleton, ElUpload } from 'element-plus';
 
 import { useEditorStore } from '@/store/editor';
 import { useMockStore } from '@/constants/mock';
@@ -14,6 +14,11 @@ import type { EditorTemplate } from '@/types/editor';
 
 const editor = useEditorStore();
 const mock = useMockStore();
+const { templates } = storeToRefs(mock); 
+
+watch(templates, (value) => {
+  console.log("templates", value);
+});
 
 const loadTemplate = (template: EditorTemplate, mode: string) => {
   editor.loadTemplate(template, mode);
@@ -43,41 +48,69 @@ const loadJSON = useMutation({
   },
 });
 
-const handleLoadJSON = async (event: Event) => {
-  const files = (event.target as HTMLInputElement).files;
-  if (!files || !files.length) return;
-  await loadJSON.mutateAsync(files[0]);
+const handleLoadJSON = async (options: any) => {
+  const file = options.file;
+  if (!file) return;
+  await loadJSON.mutateAsync(file);
 };
 </script>
 
 <template>
-  <template>
-    <div class="grid grid-cols-2 gap-x-4 gap-y-2 px-3">
-      <Button as-child size="sm" variant="outline" class="h-7 bg-card gap-1 pl-2 w-full">
-        <label>
+  <div class="flex flex-col gap-4">
+    <div class="flex items-center gap-2">
+      <h4 class="text-xs font-semibold line-clamp-1">Templates</h4>
+      <el-upload
+        :show-file-list="false"
+        :http-request="handleLoadJSON"
+        accept="application/json"
+        class="ml-auto"
+      >
+        <el-button size="small" type="primary" text bg round class="h-7 ml-auto bg-card gap-1 pl-2">
           <Plus :size="14" />
           <span>Load JSON</span>
-          <input hidden type="file" accept="application/json" @change="handleLoadJSON" />
-        </label>
-      </Button>
-      <Button as-child size="sm" variant="outline" class="h-7 bg-card gap-1 pl-2 w-full opacity-50 pointer-events-none">
-        <label>
-          <Plus :size="14" />
-          <span>Load PSD</span>
-          <input hidden type="file" accept="image/*" @change="() => {}" />
-        </label>
-      </Button>
+        </el-button>
+      </el-upload>
     </div>
-    <div class="px-3 grid grid-cols-2 gap-4 relative">
-      <template v-if="mock.templates.length">
-        <button v-for="template in mock.templates" :key="template.id" class="w-full aspect-square rounded-md overflow-hidden group border" @click="loadTemplate(template, 'replace')">
+    <div class="grid grid-cols-2 gap-2.5 items-center overflow-y-scroll scrollbar-hidden relative">
+      <template v-if="templates.length">
+        <button v-for="template in templates" :key="template.id" class="w-full aspect-square rounded-md overflow-hidden group border" @click="loadTemplate(template, 'replace')">
           <img :src="template.pages[0].thumbnail" :alt="template.name" class="group-hover:scale-110 transition-transform" />
         </button>
       </template>
       <template v-else>
-        <Skeleton v-for="(_, index) in 6" :key="index" class="w-full aspect-square rounded-md" />
+        <el-skeleton v-for="(_, index) in 6" :key="index" class="w-full aspect-square rounded-md" />
         <span class="text-xs font-semibold text-foreground/60 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 line-clamp-1">No local templates</span>
       </template>
     </div>
-  </template>
+  </div>
+  <!--<div class="grid grid-cols-2 gap-x-4 gap-y-2 px-3">
+    <el-upload
+      :show-file-list="false"
+      :http-request="handleLoadJSON"
+      accept="application/json"
+      class="w-full"
+    >
+      <el-button text bg round class="h-7 bg-card gap-1 pl-2 w-full">
+        <Plus :size="14" />
+        <span>Load JSON</span>
+      </el-button>
+    </el-upload>
+    <el-button text bg round class="h-7 bg-card gap-1 pl-2 w-full opacity-50 pointer-events-none">
+      <label>
+        <Plus :size="14" />
+        <span>Load PSD</span>
+      </label>
+    </el-button>
+  </div>
+  <div class="px-3 grid grid-cols-2 gap-4 relative">
+    <template v-if="templates.length">
+      <button v-for="template in templates" :key="template.id" class="w-full aspect-square rounded-md overflow-hidden group border" @click="loadTemplate(template, 'replace')">
+        <img :src="template.pages[0].thumbnail" :alt="template.name" class="group-hover:scale-110 transition-transform" />
+      </button>
+    </template>
+    <template v-else>
+      <el-skeleton v-for="(_, index) in 6" :key="index" class="w-full aspect-square rounded-md" />
+      <span class="text-xs font-semibold text-foreground/60 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 line-clamp-1">No local templates</span>
+    </template>
+  </div>-->
 </template>

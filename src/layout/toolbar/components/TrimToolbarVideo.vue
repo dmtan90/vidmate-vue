@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
-import { Check, ChevronLeft, ChevronRight, Play } from 'lucide-vue-next';
+import { Check, Left as ChevronLeft, Right as ChevronRight, Play } from '@icon-park/vue-next';
 import { floor } from 'lodash';
 import VueDraggable from 'vue-draggable-resizable'
 
-import Button from '@/components/ui/button.vue';
-import Input from '@/components/ui/input.vue';
+import { ElButton, ElInput } from 'element-plus';
 
 import { useEditorStore } from '@/store/editor';
 import { cn } from '@/lib/utils';
@@ -70,11 +69,11 @@ const style = computed(() => ({
 <template>
   <div class="flex items-center h-full w-full overflow-x-scroll scrollbar-hidden pr-12">
     <div class="flex items-center gap-2">
-      <Button size="sm" variant="ghost">
+      <el-button type="primary" text bg circle>
         <Play :size="15" class="" fill="#000000" />
-      </Button>
+      </el-button>
       <div class="relative">
-        <Input class="h-8 text-xs w-24 pr-8" :value="floor(absoluteDuration, 1)" readonly />
+        <el-input class="h-8 text-xs w-24 pr-8" :model-value="floor(absoluteDuration, 1)" readonly />
         <span class="absolute text-gray-500 text-xs right-2.5 top-1/2 -translate-y-1/2 font-medium">s</span>
       </div>
     </div>
@@ -82,11 +81,6 @@ const style = computed(() => ({
       <div :class="cn('bg-background items-stretch bg-repeat-x bg-center shrink-0 h-full w-full')" :style="style" />
       <div class="absolute inset-0 bg-black/40" />
       <div class="absolute h-full top-0 flex">
-        <!--<VueDraggable axis="x" :bounds="{ left: 0, right: data.trimEndX - handleWidth }" :x="data.trimStartX" :y="0" @drag="(_, dragData) => handleDragChange('trimStartX', dragData.x)">
-          <button class="absolute grid place-items-center h-full bg-primary rounded-l-md z-20" :style="{ width: `${handleWidth}px` }">
-            <ChevronLeft :size="14" :stroke-width="2.5" stroke="#ffffff" />
-          </button>
-        </VueDraggable>-->
         <VueDraggable
           axis="x"
           :x="data.trimStartX"
@@ -103,11 +97,6 @@ const style = computed(() => ({
           </button>
         </VueDraggable>
         <div class="h-full absolute border-t-2 border-b-2 border-primary mix-blend-overlay bg-gray-300 z-10" :style="{ left: `${data.trimStartX + handleWidth}px`, width: `${trackWidth}px` }"></div>
-        <!--<VueDraggable axis="x" :bounds="{ left: data.trimStartX + handleWidth, right: containerWidth }" :x="data.trimEndX" :y="0" @drag="(_, dragData) => handleDragChange('trimEndX', dragData.x)">
-          <button class="absolute grid place-items-center h-full bg-primary rounded-r-md z-20" :style="{ width: `${handleWidth}px` }">
-            <ChevronRight :size="14" :stroke-width="2.5" stroke="#ffffff" />
-          </button>
-        </VueDraggable>-->
         <VueDraggable
           axis="x"
           :x="data.trimEndX"
@@ -124,9 +113,9 @@ const style = computed(() => ({
         </VueDraggable>
       </div>
     </div>
-    <Button size="sm" class="gap-1.5 pl-2.5 bg-primary hover:bg-primary/90" @click="handleChanges">
+    <el-button type="primary" text bg round class="gap-1.5 pl-2.5 hover:bg-primary/90" @click="handleChanges">
       <Check :size="15" />
       <span>Done</span>
-    </Button>
+    </el-button>
   </div>
 </template>

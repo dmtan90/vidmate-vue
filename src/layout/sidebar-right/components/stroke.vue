@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Eye, EyeOff, Pipette, X } from 'lucide-vue-next';
-import { ChromePicker, ColorResult, tinycolor } from 'vue-color';
+import { PreviewOpen as Eye, PreviewClose as EyeOff, ColorFilter as Pipette, Close as X } from '@icon-park/vue-next';
+import { ElButton, ElColorPicker } from 'element-plus';
 import { toast } from 'vue-sonner';
+import { ChromePicker, ColorResult, tinycolor } from 'vue-color';
 
-import Button from '@/components/ui/button.vue';
 import { useEditorStore } from '@/store/editor';
 import { useCanvasStore } from '@/store/canvas';
 import { storeToRefs } from 'pinia';
@@ -15,14 +15,11 @@ const editor = useEditorStore();
 const canvasStore = useCanvasStore();
 const { canvas, selectionActive: selected } = storeToRefs(canvasStore);
 
-// const canvas = editor.canvas;
-// const selected = ref(canvas.selection?.active ?? null);
 const eyeDropperStatus = window.EyeDropper ? true : false;
 const disabled = ref(!selected.value || !selected.value.stroke);
 const color = ref(disabled.value ? "#ffffff" : selected.value?.stroke);
 
 watch(selected, () => {
-  // selected.value = canvas.selection?.active ?? null;
   disabled.value = !selected.value || !selected.value.stroke;
   color.value = disabled.value ? "#ffffff" : selected.value?.stroke;
 });
@@ -52,26 +49,26 @@ const onOpenEyeDropper = async () => {
   <div class="h-full w-full">
     <div class="flex items-center h-14 border-b px-4 gap-2.5">
       <h2 class="font-semibold">Stroke</h2>
-      <Button size="icon" variant="ghost" class="ml-auto h-7 w-7" @click="canvas.onChangeActiveObjectProperty('stroke', disabled ? '#000000' : '')">
+      <el-button circle text class="ml-auto h-7 w-7" @click="canvas.onChangeActiveObjectProperty('stroke', disabled ? '#000000' : '')">
         <template v-if="disabled">
           <EyeOff :size="15" :stroke-width="2" />
         </template>
         <template v-else>
           <Eye :size="15" :stroke-width="2" />
         </template>
-      </Button>
-      <Button size="icon" variant="outline" class="bg-card h-7 w-7" @click="editor.setActiveSidebarRight(null)">
+      </el-button>
+      <el-button plain circle class="bg-card h-7 w-7" @click="editor.setActiveSidebarRight(null)">
         <X :size="15" />
-      </Button>
+      </el-button>
     </div>
     <section class="sidebar-container">
       <div :class="cn('px-4 py-4 flex flex-col divide-y', !disabled ? 'opacity-100 pointer-events-auto' : 'opacity-50 pointer-events-none')">
         <div class="pb-4 flex flex-col gap-4">
-          <Button v-if="eyeDropperStatus" size="sm" variant="outline" class="gap-2 justify-between w-full shadow-none text-foreground/80" @click="onOpenEyeDropper">
+          <el-button v-if="eyeDropperStatus" text bg round class="gap-2 justify-between w-full shadow-none" @click="onOpenEyeDropper">
+            <Pipette :size="15" />
             <span>Pick color from page</span>
-            <Pipette class="h-3.5 w-3.5" />
-          </Button>
-          <ChromePicker v-model="color" @update:model-value="(color) => onChangeColor(tinycolor(color))" :styles="{}" />
+          </el-button>
+          <ChromePicker v-model="color" @update:model-value="(color) => onChangeColor(tinycolor(color))" class="shadow-none w-full" />
         </div>
         <div class="flex flex-col gap-4 py-5">
           <h4 class="text-xs font-semibold line-clamp-1">Light Colors</h4>

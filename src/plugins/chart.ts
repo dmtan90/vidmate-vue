@@ -1,7 +1,5 @@
 import { fabric } from "fabric";
-// import { makeAutoObservable } from "mobx";
-
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 import { createInstance } from "@/lib/utils";
 import { FabricUtils } from "@/fabric/utils";
 import type { ChartConfiguration, ChartTypeRegistry } from "chart.js";

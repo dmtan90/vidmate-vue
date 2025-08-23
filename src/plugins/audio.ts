@@ -1,9 +1,11 @@
+// @ts-ignore
+import { fabric } from "fabric";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 
 import { FabricUtils } from "@/fabric/utils";
 import { createInstance } from "@/lib/utils";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 import type { EditorAudioElement } from "@/types/editor";
 import { toast } from "vue-sonner";
 
@@ -22,7 +24,6 @@ export class CanvasAudio {
     this.context = createInstance(AudioContext);
 
     this._initEvents();
-    // makeAutoObservable(this);
   }
 
   private get canvas() {
@@ -101,6 +102,20 @@ export class CanvasAudio {
     }
   }
 
+  get(id: string) {
+    console.log("get", id, this.elements);
+    const index = this.elements.findIndex((audio) => audio.id === id);
+    if (index === -1) return null;
+
+    const audio = this.elements[index];
+    return audio;
+  }
+
+  getAudioVisual(id: string) : fabric.Object{
+    const object = this.canvas.getItemByName(id);
+    return object;
+  }
+
   delete(id: string) {
     const index = this.elements.findIndex((audio) => audio.id === id);
     if (index === -1) return;
@@ -108,8 +123,14 @@ export class CanvasAudio {
     const audio = this.elements[index];
     this.elements.splice(index, 1);
 
-    if (this.selection.active?.id === audio.id) this.selection.active = null;
-    if (this._canvas.trimmer.active?.object.id === audio.id) this._canvas.trimmer.active = null;
+    //delete audio visual object
+    const object = this.getAudioVisual(id);
+    if(object){
+      this._canvas.onDeleteObject(object);
+    }
+
+    if (this.selection.active?.name === audio.id) this.selection.active = null;
+    if (this._canvas.trimmer.active?.object.name === audio.id) this._canvas.trimmer.active = null;
   }
 
   update(id: string, value: Partial<EditorAudioElement>) {
@@ -119,15 +140,20 @@ export class CanvasAudio {
     const updated = { ...audio, ...value };
     this.elements[index] = updated;
 
-    if (this.selection) this.selection.active = Object.assign({ type: "audio" }, updated) as unknown as fabric.Object;
+    //update audio visual object
+    const object = this.getAudioVisual(id);
+    if(object){
+      this._canvas.onChangeAudioProperties(object, value);
+    }
+    // if (this.selection) this.selection.active = Object.assign({ type: "audio" }, updated) as unknown as fabric.Object;
   }
 
-  async add(url: string, name: string) {
+  async add(url: string, name: string, visual = true, _id?: string) {
     const response: Response = await fetch(url);
     const data: ArrayBuffer = await response.arrayBuffer();
     const buffer: AudioBuffer = await this.context.decodeAudioData(data);
 
-    const id = FabricUtils.elementID("audio");
+    const id = _id || FabricUtils.elementID("audio");
     const duration = buffer.duration;
     const timeline = Math.min(duration, this.timeline.duration / 1000);
 
@@ -138,7 +164,16 @@ export class CanvasAudio {
     const audio: EditorAudioElement = { id, buffer, url, timeline, name, duration, source, muted: false, playing: false, trim: 0, offset: 0, volume: 1 };
     this.elements.push(audio);
 
+    //add visual audio object
+    if(visual){
+      this.addAudioVisual(audio);  
+    }
+
     return audio;
+  }
+
+  addAudioVisual(audio: EditorAudioElement){
+    this._canvas.onAddAudioFromElement(audio);
   }
 
   async initialize(audios: Omit<EditorAudioElement, "buffer" | "source">[]) {
@@ -176,6 +211,7 @@ export class CanvasAudio {
       await ffmpeg.writeFile(input, file);
       await ffmpeg.exec(["-i", input, "-q:a", "0", "-map", "a", output], undefined, { signal });
 
+      // @ts-expect-error
       const data: Uint8Array = await ffmpeg.readFile(output);
       const buffer: AudioBuffer = await this.context.decodeAudioData(data.buffer);
 

@@ -3,7 +3,7 @@ import anime from "animejs";
 import { random } from "lodash";
 import { fabric } from "fabric";
 import { AnimationTimeline } from "canvas";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 import { FabricUtils } from "@/fabric/utils";
 import { modifyAnimationEasing } from "@/lib/animations";
 import { createInstance } from "@/lib/utils";

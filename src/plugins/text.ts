@@ -1,9 +1,7 @@
 import { fabric } from "fabric";
 import { sum } from "lodash";
-// import { makeAutoObservable } from "mobx";
-
 import { createInstance, createMap } from "@/lib/utils";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 
 interface AnimatedTextState {
   textbox: fabric.Textbox;

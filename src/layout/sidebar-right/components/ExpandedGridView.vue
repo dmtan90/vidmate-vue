@@ -4,8 +4,6 @@ import { useCanvasStore } from '@/store/canvas';
 import { storeToRefs } from "pinia";
 import { abstract, basic, frames } from '@/constants/elements';
 import SceneElement from './SceneElement.vue';
-import Skeleton from '@/components/ui/skeleton.vue';
-
 const props = defineProps<{ match: string; scene: fabric.Object[] }>();
 
 const editor = useEditorStore();
@@ -66,7 +64,7 @@ const clipActiveObjectFromAbstractShape = (path: string, name: string) => {
       <SceneElement v-for="element in scene" :key="element.name" :element="element" class-name="w-full h-full aspect-square" />
     </template>
     <template v-else>
-      <Skeleton v-for="(_, index) in 3" :key="index" class="h-full w-full aspect-square rounded-md" />
+      <el-skeleton v-for="(_, index) in 3" :key="index" class="h-full w-full aspect-square rounded-md" />
       <span class="text-xs font-semibold text-foreground/60 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 leading-none">No Elements</span>
     </template>
   </template>

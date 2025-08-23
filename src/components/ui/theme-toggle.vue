@@ -1,36 +1,28 @@
 <script setup lang="ts">
-import { Sun, Moon } from 'lucide-vue-next';
-import Button from './button.vue';
-import DropdownMenuRoot from './dropdown-menu-root.vue';
-import DropdownMenuTrigger from './dropdown-menu-trigger.vue';
-import DropdownMenuContent from './dropdown-menu-content.vue';
-import DropdownMenuRadioGroup from './dropdown-menu-radio-group.vue';
-import DropdownMenuRadioItem from './dropdown-menu-radio-item.vue';
+import { SunOne as Sun, Moon, Sun as SunMoon } from '@icon-park/vue-next';
+import { ElSwitch, ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus';
 import { useTheme } from '@/hooks/use-theme';
 
 const { theme, setTheme } = useTheme();
+
+const handleThemeChange = (value: string) => {
+  setTheme(value);
+};
 </script>
 
 <template>
-  <DropdownMenuRoot>
-    <DropdownMenuTrigger as-child>
-      <Button variant="secondary" size="icon">
-        <Sun :size="15" class="rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-        <Moon :size="15" class="absolute rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-      </Button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align="end" class="min-w-32">
-      <DropdownMenuRadioGroup v-model="theme" @update:model-value="setTheme">
-        <DropdownMenuRadioItem class="text-xs" value="light">
-          Light
-        </DropdownMenuRadioItem>
-        <DropdownMenuRadioItem class="text-xs" value="dark">
-          Dark
-        </DropdownMenuRadioItem>
-        <DropdownMenuRadioItem class="text-xs" value="system">
-          System
-        </DropdownMenuRadioItem>
-      </DropdownMenuRadioGroup>
-    </DropdownMenuContent>
-  </DropdownMenuRoot>
+  <el-dropdown trigger="click">
+    <el-button type="primary" text bg circle icon>
+      <Sun v-if="theme === 'light'" :size="15" />
+      <Moon v-else-if="theme === 'dark'" :size="15" />
+      <SunMoon v-else :size="15" />
+    </el-button>
+    <template #dropdown>
+      <el-dropdown-menu>
+        <el-dropdown-item @click="handleThemeChange('light')">Light</el-dropdown-item>
+        <el-dropdown-item @click="handleThemeChange('dark')">Dark</el-dropdown-item>
+        <el-dropdown-item @click="handleThemeChange('system')">System</el-dropdown-item>
+      </el-dropdown-menu>
+    </template>
+  </el-dropdown>
 </template>

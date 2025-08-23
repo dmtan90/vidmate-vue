@@ -1,0 +1,123 @@
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch, computed, reactive } from 'vue';
+import { useEditorStore } from '@/store/editor';
+import { cn } from '@/lib/utils';
+import { useCanvasStore } from '@/store/canvas';
+import { storeToRefs } from "pinia";
+import BaseElement from "./BaseElement.vue";
+import { MoreOne, UpSquare, DownSquare, Copy, Delete } from "@icon-park/vue-next";
+
+const props = defineProps({
+  page: {
+    type: Number,
+    required: true,
+  },
+});
+
+const editor = useEditorStore();
+const { pages, page : activePage } = storeToRefs(editor);
+const sceneWrapper = ref<HtmlELement>(null);
+const { instance } = storeToRefs(editor);
+// const canvasStore = useCanvasStore();
+// const { timeline } = storeToRefs(canvasStore);
+// const { page } = storeToRefs(editor);
+// const thumbnail = ref(null);
+// const { pages } = storeToRefs(editor);
+// const page = computed(() => pages[props.pages]);
+const elements = computed(() => editor.pages[props.page].elements);
+const scale = ref(0.1);
+// const scaleH = ref(0.1);
+// const bound = computed(() => sceneWrapper.value?.parentNode?.getBoundingClientRect());
+const style = reactive({
+  width: instance.value.dimension.width + "px",
+  height: instance.value.dimension.height + "px",
+  "--scale": scale.value,
+});
+const computeStyle = () => {
+  const bound = sceneWrapper.value?.parentNode?.getBoundingClientRect();
+  const workspace = instance.value.dimension;
+  let scaleW = bound == null ? 0.1 : (bound.width / workspace.width);
+  let scaleH = bound == null ? 0.1 : (bound.height / workspace.height);
+  scale.value = Math.min(scaleW, scaleH);
+  // if(bound.width > bound.height){//fix width
+  //   scale.value = Math.min(scaleW, scaleH);
+  // }
+  // else{//fix height
+  //   scale.value = Math.max(scaleW, scaleH);  
+  // }
+  style.width = workspace.width + "px";
+  style.height = workspace.height + "px";
+  style["--scale"] = scale;
+  // style["--scaleH"] = maxScale;
+};
+
+onMounted(() => {
+  // console.log(elements, style);
+  computeStyle();
+});
+
+// watch(timeline, (value) => {
+//   console.log("page", value);
+// });
+
+const handleSceneAction = (cmd) => {
+  const page = props.page;
+  if(cmd == "up"){
+    editor.swapPage(page, page - 1);
+  }
+  else if(cmd == "down"){
+    editor.swapPage(page, page + 1);
+  }
+  else if(cmd == "copy"){
+    editor.copyPage(page);
+  }
+  else if(cmd == "delete"){
+    editor.deletePage(page);
+  }
+}
+
+</script>
+
+<template>
+  <div class="relative p-0 h-full">
+    <div v-if="elements && elements.length > 0" ref="sceneWrapper" class="scene-wrapper" :style="style">
+      <BaseElement 
+        v-for="(element,index) in elements" :key="element" :page="page" :element="element" :scale="1"
+      />
+    </div>
+    <el-empty v-else :image-size="32" class="" :description="'Scene ' + (page + 1)"/>
+    <el-dropdown @command="handleSceneAction" class="absolute right-1 top-1 z-10">
+      <el-button type="primary" text circle>
+        <MoreOne :size="15" />
+      </el-button>
+      <template #dropdown>
+        <el-dropdown-menu class="min-w-20">
+          <el-dropdown-item command="up" :icon="UpSquare" v-if="page > 0 && pages.length > 1">
+            <span class="">Move Up</span>
+          </el-dropdown-item>
+          <el-dropdown-item command="down" :icon="DownSquare" v-if="page < pages.length - 1 && pages.length > 1">
+            <span class="">Move Down</span>
+          </el-dropdown-item>
+          <el-dropdown-item command="copy" :icon="Copy">
+            <span class="">Duplicate</span>
+          </el-dropdown-item>
+          <el-dropdown-item command="delete" :icon="Delete">
+            <span class="">Delete</span>
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
+  </div>
+</template>
+
+<style>
+.scene-wrapper {
+  --scale: 0.1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  transform: scale(var(--scale));
+  transform-origin: top left;
+}
+</style>

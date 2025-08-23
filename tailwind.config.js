@@ -1,12 +1,14 @@
 import defaultTheme from "tailwindcss/defaultTheme";
 import tailwindcssAnimate from "tailwindcss-animate";
 import tailwindcssContainerQueries from "@tailwindcss/container-queries";
+import tailwindScrollbar from 'tailwind-scrollbar';
 
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
   content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}", "./src/**/*.css"],
   prefix: "",
+  important: true,
   theme: {
     container: {
       center: true,
@@ -17,7 +19,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Inter"', ...defaultTheme.fontFamily.sans],
+        sans: ['"Poppins"', ...defaultTheme.fontFamily.sans],
       },
       borderWidth: {
         3: "3px",
@@ -81,5 +83,5 @@ export default {
       },
     },
   },
-  plugins: [tailwindcssAnimate, tailwindcssContainerQueries],
+  plugins: [tailwindcssAnimate, tailwindcssContainerQueries, tailwindScrollbar],
 };

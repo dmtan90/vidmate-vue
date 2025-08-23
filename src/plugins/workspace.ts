@@ -1,8 +1,10 @@
 import { fabric } from "fabric";
 import { clamp, throttle } from "lodash";
 import { createInstance } from "@/lib/utils";
-import { Canvas } from "@/store/canvas";
-import { maxZoom, minZoom } from "@/constants/editor";
+import { Canvas } from "@/plugins/canvas";
+import { maxZoom, minZoom, formats } from "@/constants/editor";
+import { type Dimension } from "./editor";
+import { defaultColor, defaultBackgroundColor, defaultFill, defaultStroke } from "@/fabric/constants";
 
 interface WorkspaceDimensions {
   height?: number;
@@ -24,13 +26,13 @@ export class CanvasWorkspace {
   zoom: number;
   viewportTransform: number[];
 
-  constructor(canvas: Canvas, workspace: HTMLDivElement) {
+  constructor(canvas: Canvas, workspace: HTMLDivElement, dimension: Dimension) {
     this._canvas = canvas;
     this._workspace = workspace;
 
-    this.width = 1080;
-    this.height = 1080;
-    this.fill = "#FFFFFF";
+    this.width = dimension.width;
+    this.height = dimension.height;
+    this.fill = defaultBackgroundColor;
 
     this.zoom = window.innerWidth > 640 ? 0.5 : 0.3;
     this.viewportTransform = [];
@@ -39,7 +41,6 @@ export class CanvasWorkspace {
     this._canTouchScale = true;
 
     this._init();
-    // makeAutoObservable(this);
   }
 
   private get canvas() {

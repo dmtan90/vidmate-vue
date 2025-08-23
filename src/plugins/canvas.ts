@@ -21,13 +21,13 @@ import { CanvasText } from "@/plugins/text";
 import { CanvasAnimations } from "@/plugins/animations";
 
 import type { EditorFont } from "@/constants/fonts";
-import { activityIndicator, propertiesToInclude, textLayoutProperties } from "@/fabric/constants";
+import { activityIndicator, propertiesToInclude, textLayoutProperties, defaultColor, defaultBackgroundColor, defaultFill, defaultStroke } from "@/fabric/constants";
 import { FabricUtils } from "@/fabric/utils";
 import { createInstance, createPromise } from "@/lib/utils";
 import { CanvasHotkeys } from "@/plugins/hotkeys";
 import { CanvasClone } from "@/plugins/clone";
 import { defaultSpringConfig } from "@/constants/animations";
-import { type Editor } from "@/store/editor";
+import { Editor, type Dimension } from "./editor";
 
 export class Canvas {
   id: string;
@@ -61,7 +61,6 @@ export class Canvas {
   elements: fabric.Object[];
 
   constructor(editor: Editor) {
-    // console.log("Canvas", editor);
     this.id = nanoid();
     this.name = "Untitled Page";
 
@@ -70,7 +69,6 @@ export class Canvas {
 
     this.editor = editor;
     this.template = createInstance(CanvasTemplate, this);
-    // console.log("Canvas", this.editor);
   }
 
   private _toggleControls(object: fabric.Object, enabled: boolean) {
@@ -140,7 +138,7 @@ export class Canvas {
     const props = { width: workspace.offsetWidth, height: workspace.offsetHeight, backgroundColor: "#F0F0F0" };
     this.instance = markRaw(createInstance(fabric.Canvas, element, { stateful: true, centeredRotation: true, preserveObjectStacking: true, renderOnAddRemove: false, controlsAboveOverlay: true, ...props }));
     this.artboard = markRaw(createInstance(fabric.Rect, { name: "artboard", rx: 0, ry: 0, selectable: false, absolutePositioned: true, hoverCursor: "default", excludeFromExport: true, excludeFromTimeline: true }));
-    // console.log("initialize", element, workspace, this.instance, this.artboard);
+    
     this.history = createInstance(CanvasHistory, this);
     this.alignment = createInstance(CanvasAlignment, this);
     this.selection = createInstance(CanvasSelection, this);
@@ -153,12 +151,12 @@ export class Canvas {
     this.hotkeys = createInstance(CanvasHotkeys, this);
     this.cloner = createInstance(CanvasClone, this);
 
-    this.text = createInstance(CanvasText, this);
-    this.chart = createInstance(CanvasChart, this);
+    this.text = markRaw(createInstance(CanvasText, this));
+    this.chart = markRaw(createInstance(CanvasChart, this));
     this.audio = createInstance(CanvasAudio, this);
     this.timeline = createInstance(CanvasTimeline, this);
     this.animations = createInstance(CanvasAnimations, this);
-    this.workspace = createInstance(CanvasWorkspace, this, workspace);
+    this.workspace = createInstance(CanvasWorkspace, this, workspace, this.editor.dimension);
 
     this._initEvents();
     CanvasGuidelines.initializeAligningGuidelines(this.instance);
@@ -187,15 +185,16 @@ export class Canvas {
     this.instance.discardActiveObject().requestRenderAll();
   }
 
-  onAddText(text: string, font: EditorFont, fontSize: number, fontWeight: number) {
+  onAddText(text: string, font: EditorFont, fontSize: number, fontWeight: number, color: string = defaultColor) : fabric.Object {
     const dimensions = FabricUtils.measureTextDimensions(text, font.family, fontSize, fontWeight);
-    const options = { name: FabricUtils.elementID("text"), objectCaching: false, fontFamily: font.family, fontWeight, fontSize, width: Math.min(dimensions.width, this.workspace.width), textAlign: "center" };
+    const options = { name: FabricUtils.elementID("text"), objectCaching: false, fontFamily: font.family, fontWeight, fontSize, width: Math.min(dimensions.width, this.workspace.width), textAlign: "center", fill: color };
     const textbox = createInstance(fabric.Textbox, text, options);
 
     textbox.setPositionByOrigin(this.artboard!.getCenterPoint(), "center", "center");
     FabricUtils.initializeMetaProperties(textbox, { font });
     FabricUtils.initializeAnimationProperties(textbox);
-
+    //fix wrong coords issue with custom font
+    // console.log(textbox);
     this.instance.add(textbox);
     this.instance.setActiveObject(textbox).requestRenderAll();
     return textbox;
@@ -229,8 +228,8 @@ export class Canvas {
     });
   }
 
-  async onAddImageFromThumbail(source: string, thumbnail: HTMLImageElement) {
-    const overlay = createInstance(fabric.Rect, { fill: "#000000", opacity: 0.25, evented: false, selectable: false, excludeFromAlignment: true });
+  async onAddImageFromThumbnail(source: string, thumbnail: HTMLImageElement) {
+    const overlay = createInstance(fabric.Rect, { fill: defaultFill, opacity: 0.25, evented: false, selectable: false, excludeFromAlignment: true });
     const image = createInstance(fabric.Image, thumbnail, { type: "video", crossOrigin: "anonymous", evented: false, selectable: false, excludeFromAlignment: true });
     const spinner = createInstance(fabric.Path, activityIndicator, { fill: "", stroke: "#fafafa", strokeWidth: 4, evented: false, selectable: false, excludeFromAlignment: true });
 
@@ -308,8 +307,8 @@ export class Canvas {
     });
   }
 
-  async onAddVideoFromThumbail(source: string, thumbnail: HTMLImageElement) {
-    const overlay = createInstance(fabric.Rect, { fill: "#000000", opacity: 0.25, evented: false, selectable: false, excludeFromAlignment: true });
+  async onAddVideoFromThumbnail(source: string, thumbnail: HTMLImageElement) {
+    const overlay = createInstance(fabric.Rect, { fill: defaultFill, opacity: 0.25, evented: false, selectable: false, excludeFromAlignment: true });
     const image = createInstance(fabric.Image, thumbnail, { type: "video", crossOrigin: "anonymous", evented: false, selectable: false, excludeFromAlignment: true });
     const spinner = createInstance(fabric.Path, activityIndicator, { fill: "", stroke: "#fafafa", strokeWidth: 4, evented: false, selectable: false, excludeFromAlignment: true });
 
@@ -359,7 +358,154 @@ export class Canvas {
     });
   }
 
-  onAddBasicShape(klass: string, params: any) {
+  async onAddGifFromSource(source: string, options?: fabric.IImageOptions, skip = false, render = true) {
+    // console.log("onAddGifFromSource");
+    return createPromise<fabric.Gif>((resolve, reject) => {
+      fabric.Gif.fromURL(
+        source,
+        (image) => {
+          if (!image._originalElement) {
+            return reject();
+          }
+
+          if (!skip) {
+            image.scaleToHeight(500);
+            image.setPositionByOrigin(this.artboard!.getCenterPoint(), "center", "center");
+          }
+
+          FabricUtils.initializeMetaProperties(image);
+          FabricUtils.initializeAnimationProperties(image);
+
+          this.instance.add(image);
+          if (!skip) this.instance.setActiveObject(image);
+          if (render) this.instance.requestRenderAll();
+
+          resolve(image);
+        },
+        { ...options, name: FabricUtils.elementID("gif"), crossOrigin: "anonymous", objectCaching: false, effects: {}, adjustments: {} },
+      );
+    });
+  }
+
+  async onAddGifFromThumbnail(source: string, thumbnail: HTMLImageElement) {
+    // console.log("onAddGifFromThumbnail");
+    const overlay = createInstance(fabric.Rect, { fill: defaultFill, opacity: 0.25, evented: false, selectable: false, excludeFromAlignment: true });
+    const image = createInstance(fabric.Image, thumbnail, { type: "gif", crossOrigin: "anonymous", evented: false, selectable: false, excludeFromAlignment: true });
+    const spinner = createInstance(fabric.Path, activityIndicator, { fill: "", stroke: "#fafafa", strokeWidth: 4, evented: false, selectable: false, excludeFromAlignment: true });
+
+    image.scaleToWidth(500);
+    spinner.scaleToWidth(48);
+    overlay.set({ height: image.height, width: image.width, scaleX: image.scaleX, scaleY: image.scaleY });
+
+    const id = FabricUtils.elementID("gif");
+    const placeholder = createInstance(fabric.Group, [image, overlay, spinner], { name: id, excludeFromExport: true });
+
+    spinner.setPositionByOrigin(overlay.getCenterPoint(), "center", "center");
+    placeholder.setPositionByOrigin(this.artboard.getCenterPoint(), "center", "center");
+
+    FabricUtils.objectSpinningAnimation(spinner);
+    FabricUtils.initializeMetaProperties(placeholder, { thumbnail: true });
+    FabricUtils.initializeAnimationProperties(placeholder);
+
+    this.instance.add(placeholder);
+    this.instance.setActiveObject(placeholder).requestRenderAll();
+
+    return createPromise<fabric.Gif | null>((resolve, reject) => {
+      fabric.Gif.fromURL(
+        source,
+        (image) => {
+          if (!this.instance!.contains(placeholder)) {
+            return resolve(null);
+          }
+
+          if (!image._originalElement) {
+            this.instance!.remove(placeholder).requestRenderAll();
+            return reject();
+          }
+
+          image.set({ scaleX: placeholder.getScaledWidth() / image.getScaledWidth(), scaleY: placeholder.getScaledHeight() / image.getScaledHeight() });
+          image.setPositionByOrigin(placeholder.getCenterPoint(), "center", "center");
+          FabricUtils.initializeMetaProperties(image);
+          FabricUtils.initializeAnimationProperties(image);
+
+          this.instance!.remove(placeholder).add(image);
+          this.instance!.setActiveObject(image).requestRenderAll();
+
+          resolve(image);
+        },
+        { name: id, crossOrigin: "anonymous", objectCaching: false, effects: {}, adjustments: {} },
+      );
+    });
+  }
+
+  async onAddAudioFromSource(source: string, options?: fabric.IAudioOptions, skip = false, render = true) {
+    return createPromise<fabric.Audio>((resolve, reject) => {
+      console.log("onAddAudioFromSource", source);
+      fabric.Audio.fromURL(
+        source,
+        (audio) => {
+          console.log("onAddAudioFromSource", audio);
+          if (!audio || !audio.audioElement) {
+            return reject();
+          }
+
+          if (!skip) {
+            audio.scaleToHeight(500);
+            audio.setPositionByOrigin(this.artboard!.getCenterPoint(), "center", "center");
+          }
+
+          const element = audio.audioElement as HTMLAudioElement;
+          FabricUtils.initializeMetaProperties(audio, { duration: Math.min(floor(element.duration, 1) * 1000, this.timeline.duration), ...options?.meta });
+          FabricUtils.initializeAnimationProperties(audio, { ...options?.anim });
+
+          this.instance.add(audio);
+          if (!skip) this.instance.setActiveObject(audio);
+          if (render) this.instance.requestRenderAll();
+
+          resolve(audio);
+        },
+        { ...options, name: FabricUtils.elementID("audio"), objectCaching: false, crossOrigin: "anonymous", effects: {}, adjustments: {} },
+      );
+    });
+  }
+
+  async onAddAudioFromElement(element: EditorAudioElement, options?: fabric.IAudioOptions, skip = false, render = true) {
+    //id, url, timeline, name, duration, muted: false, playing: false, trim: 0, offset: 0, volume: 1
+    return createPromise<fabric.Audio>((resolve, reject) => {
+      console.log("onAddAudioFromElement", element);
+      fabric.Audio.fromURL(
+        element.url,
+        (audio) => {
+          console.log("onAddAudioFromElement", audio);
+          if (!audio || !audio.audioElement) {
+            return reject();
+          }
+
+          audio.trimStart = (element.trim ?? 0 )*1000;
+          audio.trimEnd = audio.trimStart + (element.timeline ?? 10)*1000;
+          audio.volume = element.volume ?? 1;
+          if (!skip) {
+            audio.scaleToHeight(500);
+            audio.setPositionByOrigin(this.artboard!.getCenterPoint(), "center", "center");
+          }
+
+          const _element = audio.audioElement as HTMLAudioElement;
+          FabricUtils.initializeMetaProperties(audio, {duration: element.timeline*1000, offset: element.offset*1000, ...options?.meta});
+          FabricUtils.initializeAnimationProperties(audio, { ...options?.anim });
+          // FabricUtils.initializeMetaProperties(audio, { duration: Math.min(floor(_element.duration, 1) * 1000, this.timeline.duration), ...options?.meta });
+          
+          this.instance.add(audio);
+          if (!skip) this.instance.setActiveObject(audio);
+          if (render) this.instance.requestRenderAll();
+
+          resolve(audio);
+        },
+        { ...options, name: element.id, audioName: element.name, objectCaching: false, crossOrigin: "anonymous", effects: {}, adjustments: {} },
+      );
+    });
+  }
+
+  onAddBasicShape(klass: string, params: any) : fabric.Object {
     const shape: fabric.Object = createInstance((fabric as any)[klass], { name: FabricUtils.elementID(klass), ...params, objectCaching: false });
     shape.setPositionByOrigin(this.artboard.getCenterPoint(), "center", "center");
 
@@ -373,8 +519,8 @@ export class Canvas {
     return shape;
   }
 
-  onAddAbstractShape(path: string, name = "shape") {
-    const options = { name: FabricUtils.elementID(name), fill: "#000000", objectCaching: false };
+  onAddAbstractShape(path: string, name = "shape", fill: string = defaultFill, stroke: string = defaultStroke) : fabric.Object {
+    const options = { name: FabricUtils.elementID(name), fill, stroke, objectCaching: false };
     const shape = createInstance(fabric.Path, path, { ...options });
 
     shape.scaleToHeight(500);
@@ -390,8 +536,8 @@ export class Canvas {
     return shape;
   }
 
-  onAddLine(points: number[], name = "line") {
-    const options = { name: FabricUtils.elementID(name), strokeWidth: 4, stroke: "#000000", hasBorders: false, objectCaching: false };
+  onAddLine(points: number[], name = "line", stroke: string = defaultStroke) : fabric.Object {
+    const options = { name: FabricUtils.elementID(name), strokeWidth: 4, stroke: stroke, hasBorders: false, objectCaching: false };
     const line = createInstance(fabric.Line, points, options);
 
     line.setPositionByOrigin(this.artboard.getCenterPoint(), "center", "center");
@@ -432,6 +578,7 @@ export class Canvas {
   }
 
   onChangeObjectProperty(object: fabric.Object, property: keyof fabric.Object, value: any) {
+    console.log("onChangeObjectProperty", object, property, value);
     if (!object) return;
     object.set(property, value);
     this.instance.fire("object:modified", { target: object });
@@ -439,6 +586,7 @@ export class Canvas {
   }
 
   onChangeActiveObjectProperty(property: keyof fabric.Object, value: any) {
+    console.log("onChangeActiveObjectProperty", property, value);
     const selected = this.instance.getActiveObject();
     if (selected) this.onChangeObjectProperty(selected, property, value);
   }
@@ -580,6 +728,43 @@ export class Canvas {
     const selected = this.instance.getActiveObject() as fabric.Video | null;
     if (!selected || selected.type !== "video") return;
     this.onChangeVideoProperty(selected, property, value);
+  }
+
+  onChangeAudioProperties(object: fabric.Audio, props: Partial<EditorAudioElement>){
+    if (!object || !props) return;
+    if(props.url){
+      object.set("src", props.url);
+    }
+
+    if(props.duration != undefined){
+      object.set("duration", props.duration*1000);
+    }
+
+    if(props.trim != undefined){
+      object.set("trimStart", props.trim*1000);
+    }
+
+    if(props.volume != undefined){
+      object.set("volume", props.volume);
+    }
+
+    if(props.timeline != undefined && object.meta){
+      object.meta["duration"] = props.timeline*1000;
+      //update trimEnd
+      let trimEnd = object.trimStart + props.timeline*1000;
+      object.set("trimEnd", trimEnd);
+    }
+
+    if(props.offset != undefined && object.meta){
+      object.meta["offset"] = props.offset*1000;
+    }
+    
+    if(props.offset != undefined || props.timeline != undefined){
+      this.timeline.update(object);
+    }
+    
+    this.instance.fire("object:modified", { target: object });
+    this.instance.requestRenderAll();
   }
 
   destroy() {

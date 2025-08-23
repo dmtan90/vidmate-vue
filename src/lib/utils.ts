@@ -52,6 +52,17 @@ export function createFileDownload(file: File | Blob, name: string) {
   URL.revokeObjectURL(href);
 }
 
+export function createFileDownloads(files: File[] | Blob[], name: string) {
+  const options = { type: files[0].type, lastModified: new Date().getTime() };
+  const file = new File(files, name, options);
+  const anchor = document.createElement("a");
+  const href = URL.createObjectURL(file);
+  anchor.download = name;
+  anchor.href = href;
+  anchor.click();
+  URL.revokeObjectURL(href);
+}
+
 export function createBase64Download(data: any, type: string, name: string) {
   const href = `data:${type};charset=utf-8,${encodeURIComponent(JSON.stringify(data))}`;
   const anchor = document.createElement("a");

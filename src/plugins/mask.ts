@@ -1,8 +1,6 @@
-// import { makeAutoObservable } from "mobx";
 import { fabric } from "fabric";
-
 import { createInstance } from "@/lib/utils";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 import { FabricUtils } from "@/fabric/utils";
 
 const _fabric = fabric as any;

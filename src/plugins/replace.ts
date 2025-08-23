@@ -2,7 +2,7 @@ import { FabricUtils } from "@/fabric/utils";
 import { checkForAudioInVideo } from "@/lib/media";
 import { createPromise } from "@/lib/utils";
 import { rmbgAI } from "@/models/rmbgAI";
-import { Canvas } from "@/store/canvas";
+import { Canvas } from "@/plugins/canvas";
 import type { EditorReplace } from "@/types/editor";
 import { fabric } from "fabric";
 
@@ -14,7 +14,6 @@ export class CanvasReplace {
     this.active = null;
     this._canvas = canvas;
     this._initEvents();
-    // makeAutoObservable(this);
   }
 
   private get canvas() {
@@ -93,9 +92,10 @@ export class CanvasReplace {
 
   mark(object?: fabric.Object | null) {
     if (!object) this.active = null;
-    if (FabricUtils.isImageElement(object)) this.active = { type: "image", object };
-    if (FabricUtils.isVideoElement(object)) this.active = { type: "video", object };
-    if (FabricUtils.isAudioElement(object)) this.active = { type: "audio", object };
+    if (FabricUtils.isGifElement(object)) this.active = { type: "gif", object };
+    else if (FabricUtils.isImageElement(object)) this.active = { type: "image", object };
+    else if (FabricUtils.isVideoElement(object)) this.active = { type: "video", object };
+    else if (FabricUtils.isAudioElement(object)) this.active = { type: "audio", object };
     return this.active;
   }
 
@@ -103,6 +103,7 @@ export class CanvasReplace {
     if (!this.active) return;
     switch (this.active.type) {
       case "image":
+      case "gif":
         this.replaceImage(this.active.object, source);
         if (cache) rmbgAI.removeCacheEntry(this.active.object.name!);
         break;

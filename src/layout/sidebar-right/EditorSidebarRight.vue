@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, watch, shallowRef, ref } from 'vue';
 
-import DrawerRoot from '@/components/ui/drawer-root.vue';
-import DrawerContent from '@/components/ui/drawer-content.vue';
+import DrawerRoot from '@/components/ui/drawer.vue';
 
 import { useEditorStore } from '@/store/editor';
 import { useCanvasStore } from '@/store/canvas';
@@ -16,6 +15,7 @@ import FilterSidebar from './components/filters.vue';
 import FontSidebar from './components/fonts.vue';
 import StrokeSidebar from './components/stroke.vue';
 import AISidebar from './components/ai.vue';
+import VisualSidebar from './components/visual.vue';
 
 const rightSidebarWidth = '280px';
 
@@ -35,11 +35,11 @@ const sidebarComponentMap: Record<string, SidebarMapValue> = {
   },
   clip: {
     Component: ClipMaskSidebar,
-    close: (selected) => !selected || !(selected.type === "image" || selected.type === "video"),
+    close: (selected) => !selected || !(selected.type === "image" || selected.type === "gif" || selected.type === "video"),
   },
   filters: {
     Component: FilterSidebar,
-    close: (selected) => !selected || !(selected.type === "image" || selected.type === "video"),
+    close: (selected) => !selected || !(selected.type === "image" || selected.type === "gif" || selected.type === "video"),
   },
   animations: {
     Component: AnimationSidebar,
@@ -51,7 +51,11 @@ const sidebarComponentMap: Record<string, SidebarMapValue> = {
   },
   ai: {
     Component: AISidebar,
-    close: (selected) => !selected || !(selected.type === "image" || selected.type === "textbox"),
+    close: (selected) => !selected || !(selected.type === "video" || selected.type === "image" || selected.type === "textbox"),
+  },
+  visual: {
+    Component: VisualSidebar,
+    close: (selected) => !selected,
   },
 };
 
@@ -87,10 +91,8 @@ const handleDrawerClose = () => {
 <template>
   <template v-if="!shouldClose">
     <template v-if="!isTablet">
-      <DrawerRoot :open="!!sidebar" @update:open="handleDrawerClose">
-        <DrawerContent>
-          <component :is="sidebar.Component" v-if="sidebar" />
-        </DrawerContent>
+      <DrawerRoot v-model="sidebar" :with-header="false" @update:open="handleDrawerClose">
+        <component :is="sidebar.Component" v-if="sidebar" />
       </DrawerRoot>
     </template>
 

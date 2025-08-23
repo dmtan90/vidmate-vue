@@ -1,40 +1,43 @@
 <script setup lang="ts">
 import { computed, useAttrs, ref, watch, type PropType } from 'vue';
-import Slider from './slider.vue';
-import Input from './input.vue';
 
 const props = defineProps({
-  value: { type: Number, default: 0 },
+  modelValue: { type: Number, default: 0 },
   class: { type: String, default: '' },
   min: { type: Number, default: null },
   max: { type: Number, default: null },
   step: { type: Number, default: null },
   disabled: { type: Boolean, default: false },
-  onChange: { type: Function, default: (value) => {} }
+  size: { type: String, default: '' }
 });
 
-// const computedClass = computed(() =>
-//   cn("relative flex w-full touch-none select-none items-center data-[disabled]:pointer-events-none data-[disabled]:opacity-50", props.class)
-// );
+const emit = defineEmits(['update:modelValue']);
 
-// const attrs = useAttrs();
+const handleSliderChange = (value: number) => {
+  emit('update:modelValue', value);
+};
 
-// const modelValue = ref(props.value);
-// watch(props, (value) => {
-//   console.log("props", value);
-//   modelValue.value = props.value;
-// });
-
+const handleInputChange = (value: string | number) => {
+  emit('update:modelValue', Number(value));
+};
 </script>
 
 <template>
-  <Slider :min="props.min" :max="props.max" :step="props.step" :value="[props.value]" :disabled="props.disabled" @update:model-value="([value]) => props.onChange(value)"/>
-  <Input
-    type="number"
-    class="h-8 w-16 text-xs"
-    :value="props.value"
+  <el-slider :size="props.size" :min="props.min" :max="props.max" :step="props.step" :model-value="props.modelValue" :disabled="props.disabled" @update:model-value="handleSliderChange"/>
+  <el-input-number :size="props.size"
+    controls-position="right"
+    class="ml-1 h-8 w-30 text-xs [&_.el-input__wrapper]:pl-5"
+    :model-value="props.modelValue"
     :disabled="props.disabled"
-    @change="(event) => props.onChange(Number(event.target.value))"
+    @update:model-value="handleInputChange"
     :min="props.min" :max="props.max" :step="props.step"
   />
 </template>
+
+<style>
+.el-input-number {
+  .el-input__wrapper {
+    padding-left: 3px !important;
+  }
+}
+</style>
