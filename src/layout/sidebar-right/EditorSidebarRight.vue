@@ -16,6 +16,7 @@ import FontSidebar from './components/fonts.vue';
 import StrokeSidebar from './components/stroke.vue';
 import AISidebar from './components/ai.vue';
 import VisualSidebar from './components/visual.vue';
+import PositionSidebar from './components/position.vue';
 
 const rightSidebarWidth = '280px';
 
@@ -41,7 +42,7 @@ const sidebarComponentMap: Record<string, SidebarMapValue> = {
     Component: FilterSidebar,
     close: (selected) => !selected || !(selected.type === "image" || selected.type === "gif" || selected.type === "video"),
   },
-  animations: {
+  animation: {
     Component: AnimationSidebar,
     close: (selected) => !selected,
   },
@@ -55,6 +56,10 @@ const sidebarComponentMap: Record<string, SidebarMapValue> = {
   },
   visual: {
     Component: VisualSidebar,
+    close: (selected) => !selected,
+  },
+  position: {
+    Component: PositionSidebar,
     close: (selected) => !selected,
   },
 };

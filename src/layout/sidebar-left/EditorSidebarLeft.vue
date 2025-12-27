@@ -27,16 +27,16 @@ import PromptMenu from './components/prompt.vue';
 import AIMenu from './components/ai.vue';
 
 const sidebarComponentMap: Record<string, any> = {
-  scenes: SceneMenu,
-  templates: TemplateMenu,
-  texts: TextMenu,
-  uploads: UploadMenu,
-  images: ImageMenu,
-  videos: VideoMenu,
-  audios: AudioMenu,
-  charts: ChartMenu,
-  elements: ElementMenu,
-  formats: FormatMenu,
+  scene: SceneMenu,
+  template: TemplateMenu,
+  text: TextMenu,
+  upload: UploadMenu,
+  image: ImageMenu,
+  video: VideoMenu,
+  audio: AudioMenu,
+  chart: ChartMenu,
+  element: ElementMenu,
+  format: FormatMenu,
   prompt: PromptMenu,
   ai: AIMenu,
 };
@@ -49,13 +49,13 @@ const items = computed(() => {
   return [
     {
       icon: Clapperboard,
-      label: "Scenes",
-      value: "scenes",
+      label: "Scene",
+      value: "scene",
     },
     {
       icon: Grid2X2,
-      label: "Templates",
-      value: "templates",
+      label: "Template",
+      value: "template",
     },
     {
       icon: Bot,
@@ -69,33 +69,33 @@ const items = computed(() => {
     },
     {
       icon: Layers,
-      label: "Elements",
-      value: "elements",
+      label: "Element",
+      value: "element",
     },
     {
       icon: Type,
-      label: "Texts",
-      value: "texts",
+      label: "Text",
+      value: "text",
     },
     {
       icon: Image,
-      label: "Images",
-      value: "images",
+      label: "Image",
+      value: "image",
     },
     {
       icon: Video,
-      label: "Videos",
-      value: "videos",
+      label: "Video",
+      value: "video",
     },
     {
       icon: Music,
-      label: "Audios",
-      value: "audios",
+      label: "Audio",
+      value: "audio",
     },
     {
       icon: Upload,
-      label: "Uploads",
-      value: "uploads",
+      label: "Upload",
+      value: "upload",
     },
     // {
     //   icon: Bot,

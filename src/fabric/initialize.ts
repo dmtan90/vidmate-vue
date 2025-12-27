@@ -30,6 +30,13 @@ rotationControl.src = RotationControl;
 const dragControl = document.createElement("img");
 dragControl.src = DragControl;
 
+// This enables the WebGL pipeline required for 'multiply'
+fabric.filterBackend = fabric.initFilterBackend();
+console.log("isWebglSupported", fabric.isWebglSupported())
+
+// Sets crossOrigin to 'anonymous' for all new Fabric images globally
+fabric.Image.prototype.crossOrigin = 'anonymous';
+
 // console.log("fabric.controlsUtils", fabric.controlsUtils);
 
 function renderIconVertical(ctx: CanvasRenderingContext2D, left: number, top: number, _: unknown, fabricObject: fabric.Object) {
@@ -287,6 +294,7 @@ fabric.Image.prototype.set({
     ml: false,
     mr: false,
   },
+  // backgroundColor: "#FFFFFF"
 });
 
 fabric.Audio.prototype.set({
@@ -297,3 +305,158 @@ fabric.Audio.prototype.set({
     mr: true,
   },
 });
+
+// Define a custom SoftLight filter class
+fabric.Image.filters.SoftLightBlend = fabric.util.createClass(fabric.Image.filters.BaseFilter, {
+  type: 'SoftLightBlend',
+
+  fragmentSource: `
+    precision highp float;
+    uniform sampler2D uTexture;
+    varying vec2 vTexCoord;
+    uniform vec3 uColor;
+    uniform float uAlpha;
+
+    // W3C Soft Light Formula
+    float blendSoftLight(float base, float blend) {
+      return (blend <= 0.5) ? 
+        (base - (1.0 - 2.0 * blend) * base * (1.0 - base)) : 
+        (base + (2.0 * blend - 1.0) * (sqrt(base) - base));
+    }
+
+    void main() {
+      vec4 texColor = texture2D(uTexture, vTexCoord);
+      vec3 base = texColor.rgb;
+      vec3 blend = uColor;
+      
+      vec3 res = vec3(
+        blendSoftLight(base.r, blend.r),
+        blendSoftLight(base.g, blend.g),
+        blendSoftLight(base.b, blend.b)
+      );
+
+      gl_FragColor = vec4(mix(base, res, uAlpha), texColor.a);
+    }
+  `,
+
+  initialize: function(options) {
+    options = options || {};
+    this.uColor = options.uColor || [0.5, 0.5, 0.5];
+    this.uAlpha = options.uAlpha !== undefined ? options.uAlpha : 1;
+  },
+
+  sendUniformData: function(gl, uniformLocations) {
+    gl.uniform3fv(uniformLocations.uColor, this.uColor);
+    gl.uniform1f(uniformLocations.uAlpha, this.uAlpha);
+  },
+
+  toObject: function() {
+    return fabric.util.object.extend(this.callSuper('toObject'), {
+      uColor: this.uColor,
+      uAlpha: this.uAlpha
+    });
+  }
+});
+
+fabric.Image.filters.SoftLightBlend.fromObject = fabric.Image.filters.BaseFilter.fromObject;
+
+fabric.Image.filters.SaturationBlend = fabric.util.createClass(fabric.Image.filters.BaseFilter, {
+  type: 'SaturationBlend',
+
+  // 1. The GLSL Logic
+  fragmentSource: `
+    precision highp float;
+    uniform sampler2D uTexture;
+    varying vec2 vTexCoord;
+    uniform vec3 uColor;
+    uniform float uAlpha;
+
+    float getLum(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
+    float getSat(vec3 c) { return max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b)); }
+
+    void main() {
+      vec4 texColor = texture2D(uTexture, vTexCoord);
+      vec3 base = texColor.rgb;
+      float l = getLum(base);
+      float s = getSat(uColor);
+      
+      vec3 res = l + (base - l) * (s / (getSat(base) + 0.001));
+      gl_FragColor = vec4(mix(base, res, uAlpha), texColor.a);
+    }
+  `,
+
+  // 2. Initialize parameters
+  initialize: function(options) {
+    options = options || {};
+    this.uColor = options.uColor || [1, 0, 0];
+    this.uAlpha = options.uAlpha !== undefined ? options.uAlpha : 1;
+  },
+
+  // 3. Send data to the GPU
+  sendUniformData: function(gl, uniformLocations) {
+    gl.uniform3fv(uniformLocations.uColor, this.uColor);
+    gl.uniform1f(uniformLocations.uAlpha, this.uAlpha);
+  },
+
+  // 4. Required for state saving/loading
+  toObject: function() {
+    return fabric.util.object.extend(this.callSuper('toObject'), {
+      uColor: this.uColor,
+      uAlpha: this.uAlpha
+    });
+  }
+});
+
+// 5. THE FIX: Attach the static fromObject method
+fabric.Image.filters.SaturationBlend.fromObject = fabric.Image.filters.BaseFilter.fromObject;
+
+fabric.Image.filters.HardLightBlend = fabric.util.createClass(fabric.Image.filters.BaseFilter, {
+  type: 'HardLightBlend',
+
+  fragmentSource: `
+    precision highp float;
+    uniform sampler2D uTexture;
+    varying vec2 vTexCoord;
+    uniform vec3 uColor;
+    uniform float uAlpha;
+
+    float blendHardLight(float base, float blend) {
+      return (blend < 0.5) ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend));
+    }
+
+    void main() {
+      vec4 texColor = texture2D(uTexture, vTexCoord);
+      vec3 base = texColor.rgb;
+      vec3 blend = uColor;
+      
+      vec3 res = vec3(
+        blendHardLight(base.r, blend.r),
+        blendHardLight(base.g, blend.g),
+        blendHardLight(base.b, blend.b)
+      );
+
+      gl_FragColor = vec4(mix(base, res, uAlpha), texColor.a);
+    }
+  `,
+
+  initialize: function(options) {
+    options = options || {};
+    this.uColor = options.uColor || [1, 1, 0];
+    this.uAlpha = options.uAlpha !== undefined ? options.uAlpha : 1;
+  },
+
+  sendUniformData: function(gl, uniformLocations) {
+    gl.uniform3fv(uniformLocations.uColor, this.uColor);
+    gl.uniform1f(uniformLocations.uAlpha, this.uAlpha);
+  },
+
+  toObject: function() {
+    return fabric.util.object.extend(this.callSuper('toObject'), {
+      uColor: this.uColor,
+      uAlpha: this.uAlpha
+    });
+  }
+});
+
+// Important: Fix for the fromObject error
+fabric.Image.filters.HardLightBlend.fromObject = fabric.Image.filters.BaseFilter.fromObject;

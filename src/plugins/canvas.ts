@@ -2,6 +2,7 @@ import { markRaw, ref } from "vue"
 import { nanoid } from "nanoid";
 import { fabric } from "fabric";
 import { floor, isUndefined } from "lodash";
+import { AnimationTimeline } from "canvas";
 
 import { CanvasAlignment } from "@/plugins/alignment";
 import { CanvasAudio } from "@/plugins/audio";
@@ -59,6 +60,7 @@ export class Canvas {
 
   controls: boolean;
   elements: fabric.Object[];
+  anim!: AnimationTimeline;//default animation for elements
 
   constructor(editor: Editor) {
     this.id = nanoid();
@@ -81,21 +83,24 @@ export class Canvas {
   }
 
   private _objectAddedEvent(event: fabric.IEvent) {
+    // console.log("_objectAddedEvent", event.target);
     if (!event.target || event.target.excludeFromTimeline) return;
     this.elements.push(event.target.toObject(propertiesToInclude));
   }
 
   private _objectModifiedEvent(event: fabric.IEvent) {
-    // console.log("_objectModifiedEvent", event);
+    // console.log("_objectModifiedEvent", event.target);
     if (!event.target) return;
     this._toggleControls(event.target, true);
-    FabricUtils.applyObjectScaleToDimensions(event.target, ["rect"]);
+    FabricUtils.applyObjectScaleToDimensions(event.target, ["rect", "circle", "triangle", "ellipse"]);
+    event.target.setCoords();
     const index = this.elements.findIndex((element) => element.name === event.target!.name);
     if (index === -1 || event.target.excludeFromTimeline) return;
     this.elements[index] = event.target.toObject(propertiesToInclude);
   }
 
   private _objectDeletedEvent(event: fabric.IEvent) {
+    // console.log("_objectDeletedEvent", event.target);
     if (!event.target) return;
     const index = this.elements.findIndex((element) => element.name === event.target!.name);
     if (index !== -1) this.elements.splice(index, 1);
@@ -103,20 +108,36 @@ export class Canvas {
   }
 
   private _objectMovingEvent(event: fabric.IEvent) {
+    // console.log("_objectMovingEvent", event.target);
     if (!event.target) return;
     this._toggleControls(event.target, false);
   }
 
   private _objectScalingEvent(event: fabric.IEvent) {
+    // console.log("_objectScalingEvent", event.target);
     if (!event.target) return;
     this._toggleControls(event.target, false);
   }
 
   private _objectRotatingEvent(event: fabric.IEvent<MouseEvent>) {
+    // console.log("_objectRotatingEvent", event.target);
     if (!event.target) return;
     this._toggleControls(event.target, false);
     if (event.e.shiftKey) event.target.set({ snapAngle: 45 });
     else event.target.set({ snapAngle: undefined });
+  }
+
+  get thumbnailElements(){
+    //get elements to build thumbnails
+    const elements = this.elements.filter(element => {
+      if(element.meta && element.meta.duration && element.meta.duration > 1000 && element.meta.offset <= 2000){
+        // console.log(element.meta);
+        return true;
+      }
+      return false;
+    });
+    // console.log(elements);
+    return elements;
   }
 
   private _initEvents() {
@@ -176,13 +197,24 @@ export class Canvas {
   }
 
   onDeleteActiveObject() {
-    const selection = this.instance.getActiveObject();
-    if (FabricUtils.isActiveSelection(selection)) {
-      this.instance.remove(...selection._objects);
-    } else {
-      if (selection) this.instance.remove(selection);
+    let activeObject = this.selection.active;
+    console.log(activeObject);
+    if(!activeObject){
+      return;
     }
-    this.instance.discardActiveObject().requestRenderAll();
+
+    if(activeObject.type == "audio"){
+      this.audio.delete(activeObject.id);
+    }
+    else{
+      const selection = this.instance.getActiveObject();
+      if (FabricUtils.isActiveSelection(selection)) {
+        this.instance.remove(...selection._objects);
+      } else {
+        if (selection) this.instance.remove(selection);
+      }
+      this.instance.discardActiveObject().requestRenderAll();
+    }
   }
 
   onAddText(text: string, font: EditorFont, fontSize: number, fontWeight: number, color: string = defaultColor) : fabric.Object {
@@ -283,6 +315,7 @@ export class Canvas {
       fabric.Video.fromURL(
         source,
         (video) => {
+          console.log("options", options);
           if (!video || !video._originalElement) {
             return reject();
           }
@@ -307,7 +340,7 @@ export class Canvas {
     });
   }
 
-  async onAddVideoFromThumbnail(source: string, thumbnail: HTMLImageElement) {
+  async onAddVideoFromThumbnail(source: string, thumbnail: HTMLImageElement | string) {
     const overlay = createInstance(fabric.Rect, { fill: defaultFill, opacity: 0.25, evented: false, selectable: false, excludeFromAlignment: true });
     const image = createInstance(fabric.Image, thumbnail, { type: "video", crossOrigin: "anonymous", evented: false, selectable: false, excludeFromAlignment: true });
     const spinner = createInstance(fabric.Path, activityIndicator, { fill: "", stroke: "#fafafa", strokeWidth: 4, evented: false, selectable: false, excludeFromAlignment: true });
@@ -342,7 +375,7 @@ export class Canvas {
           }
 
           const element = video._originalElement as HTMLVideoElement;
-          video.set({ scaleX: placeholder.getScaledWidth() / video.getScaledWidth(), scaleY: placeholder.getScaledHeight() / video.getScaledHeight() });
+          video.set({ scaleX: placeholder.getScaledWidth() / video.getScaledWidth(), scaleY: placeholder.getScaledHeight() / video.getScaledHeight(), thumbnail: thumbnail });
           video.setPositionByOrigin(placeholder.getCenterPoint(), "center", "center");
 
           FabricUtils.initializeMetaProperties(video, { duration: Math.min(floor(element.duration, 1) * 1000, this.timeline.duration) });
@@ -472,33 +505,35 @@ export class Canvas {
   async onAddAudioFromElement(element: EditorAudioElement, options?: fabric.IAudioOptions, skip = false, render = true) {
     //id, url, timeline, name, duration, muted: false, playing: false, trim: 0, offset: 0, volume: 1
     return createPromise<fabric.Audio>((resolve, reject) => {
-      console.log("onAddAudioFromElement", element);
+      // console.log("onAddAudioFromElement", element);
       fabric.Audio.fromURL(
         element.url,
         (audio) => {
-          console.log("onAddAudioFromElement", audio);
           if (!audio || !audio.audioElement) {
             return reject();
           }
 
+          console.log("onAddAudioFromElement 1", audio, options);
           audio.trimStart = (element.trim ?? 0 )*1000;
           audio.trimEnd = audio.trimStart + (element.timeline ?? 10)*1000;
           audio.volume = element.volume ?? 1;
+          audio.visible = element.visible || false;
           if (!skip) {
             audio.scaleToHeight(500);
             audio.setPositionByOrigin(this.artboard!.getCenterPoint(), "center", "center");
           }
-
+          console.log("onAddAudioFromElement 2", audio, options);
           const _element = audio.audioElement as HTMLAudioElement;
           FabricUtils.initializeMetaProperties(audio, {duration: element.timeline*1000, offset: element.offset*1000, ...options?.meta});
           FabricUtils.initializeAnimationProperties(audio, { ...options?.anim });
           // FabricUtils.initializeMetaProperties(audio, { duration: Math.min(floor(_element.duration, 1) * 1000, this.timeline.duration), ...options?.meta });
-          
+          console.log("onAddAudioFromElement 3", audio, options);
           this.instance.add(audio);
           if (!skip) this.instance.setActiveObject(audio);
           if (render) this.instance.requestRenderAll();
 
           resolve(audio);
+          console.log("onAddAudioFromElement 4", audio, options);
         },
         { ...options, name: element.id, audioName: element.name, objectCaching: false, crossOrigin: "anonymous", effects: {}, adjustments: {} },
       );
@@ -506,6 +541,7 @@ export class Canvas {
   }
 
   onAddBasicShape(klass: string, params: any) : fabric.Object {
+    console.log("onAddBasicShape", klass, params);
     const shape: fabric.Object = createInstance((fabric as any)[klass], { name: FabricUtils.elementID(klass), ...params, objectCaching: false });
     shape.setPositionByOrigin(this.artboard.getCenterPoint(), "center", "center");
 
@@ -520,6 +556,7 @@ export class Canvas {
   }
 
   onAddAbstractShape(path: string, name = "shape", fill: string = defaultFill, stroke: string = defaultStroke) : fabric.Object {
+    console.log("onAddAbstractShape", path, fill);
     const options = { name: FabricUtils.elementID(name), fill, stroke, objectCaching: false };
     const shape = createInstance(fabric.Path, path, { ...options });
 
@@ -552,6 +589,17 @@ export class Canvas {
     return line;
   }
 
+  //init audios from template
+  async initializeAudios(audios: EditorAudioElement) {
+    console.log("initializeAudios", audios);
+    if(audios != undefined){
+      for(let i = 0; i < audios.length; i++){
+        const audio = audios[i]
+        await this.onAddAudioFromElement(audio, {visible: audio.visible || false}, true);
+      }
+    }
+  }
+
   onMarkObjectAsPlaceholder(object: fabric.Object, label: string | false) {
     if (!object || !object.meta) return;
     object.meta.placeholder = !!label;
@@ -580,7 +628,21 @@ export class Canvas {
   onChangeObjectProperty(object: fabric.Object, property: keyof fabric.Object, value: any) {
     console.log("onChangeObjectProperty", object, property, value);
     if (!object) return;
-    object.set(property, value);
+    if(property == "angle"){
+      object.rotate(value);
+    }
+    else if(property == "width" && object.keepRatio){
+      const height = parseInt(value * object.height / object.width);
+      object.set("width", value);
+      object.set("height", height);
+    }
+    else if(object.type == "circle" && (property == "width" || property == "height")){
+      object.set("width", value);
+      object.set("height", value);
+    }
+    else{
+      object.set(property, value);
+    }
     this.instance.fire("object:modified", { target: object });
     this.instance.requestRenderAll();
   }

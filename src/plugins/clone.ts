@@ -15,6 +15,10 @@ export class CanvasClone {
     this._clipboard = null;
   }
 
+  get canvas(){
+    return this._canvas;
+  }
+
   _resolver(_: unknown, key: string | number | undefined) {
     switch (key) {
       case "clipPath":
@@ -24,31 +28,41 @@ export class CanvasClone {
     }
   }
 
-  copy(_object?: fabric.Object) {
-    const object = _object || this._canvas.instance.getActiveObject();
-    this._clipboard = object;
+  copy(_object?: fabric.Object | EditorAudioElement) {
+    // const object = _object || this._canvas.instance.getActiveObject();
+    this._clipboard = _object || this.canvas.instance.getActiveObject();
   }
 
-  async paste() : Promise<fabric.Object> {
+  async paste() : Promise<fabric.Object | EditorAudioElement> {
     if (!this._clipboard) return null;
+    const type = this._clipboard.type || "audio";
 
-    const name = FabricUtils.elementID(this._clipboard.name!.split("_").at(0) || "clone");
-    if(this._clipboard.type == 'audio'){
-      // const id = FabricUtils.elementID(this._clipboard.name!.split("_").at(0) || "clone");
-      const audio = this._canvas.audio.get(this._clipboard.name);
-      const cloneAudio: EditorAudioElement = cloneDeep(audio);
-      cloneAudio.id = name;
-      // @ts-expect-error
-      this._canvas.audio.elements.push(cloneAudio as EditorAudioElement);
+    const name = (type == "audio") ? 
+      FabricUtils.elementID(this._clipboard.id!.split("_").at(0) || "clone") :
+      FabricUtils.elementID(this._clipboard.name!.split("_").at(0) || "clone");
+    // if(this._clipboard.type == 'audio'){
+    //   // const id = FabricUtils.elementID(this._clipboard.name!.split("_").at(0) || "clone");
+    //   const audio = this._canvas.audio.get(this._clipboard.name);
+    //   const cloneAudio: EditorAudioElement = cloneDeep(audio);
+    //   cloneAudio.id = name;
+    //   // @ts-expect-error
+    //   // this._canvas.audio.elements.push(cloneAudio as EditorAudioElement);
+    // }
+    let clone: fabric.Object | EditorAudioElement = null;
+    // const clone: fabric.Object | EditorAudioElement = await createPromise<fabric.Object | EditorAudioElement>((resolve) => this._clipboard!.clone(resolve, propertiesToInclude));
+    if(type != "audio"){
+      const meta = cloneDeep(this._clipboard.meta);
+      const anim = cloneDeepWith(this._clipboard.anim, this._resolver);
+      clone = await createPromise<fabric.Object>((resolve) => this._clipboard!.clone(resolve, propertiesToInclude));
+      clone.set({ name: name, top: clone.top! + 10, left: clone.left! + 10, meta: meta, anim: anim, clipPath: undefined });  
+    }
+    else{
+      clone = cloneDeep(this._clipboard);
+      clone.id = name;
     }
 
-    const meta = cloneDeep(this._clipboard.meta);
-    const anim = cloneDeepWith(this._clipboard.anim, this._resolver);
-    const clone: fabric.Object = await createPromise<fabric.Object>((resolve) => this._clipboard!.clone(resolve, propertiesToInclude));
-    clone.set({ name: name, top: clone.top! + 10, left: clone.left! + 10, meta: meta, anim: anim, clipPath: undefined });
-
     if (this._clipboard.clipPath) {
-      this._canvas.history.active = false;
+      this.canvas.history.active = false;
 
       const clipPath: fabric.Object = await createPromise<fabric.Object>((resolve) => this._clipboard!.clipPath!.clone(resolve, propertiesToInclude));
       clipPath.set({ name: FabricUtils.elementID(clipPath.name!.split("_").at(0) || "clone") });
@@ -61,25 +75,30 @@ export class CanvasClone {
       clone.on("rotating", handler);
       clone.set({ clipPath }).setCoords();
 
-      this._canvas.instance.add(clipPath, clone);
-      this._canvas.instance.setActiveObject(clone).requestRenderAll();
-      this._canvas.history.active = true;
+      this.canvas.instance.add(clipPath, clone);
+      this.canvas.instance.setActiveObject(clone).requestRenderAll();
+      this.canvas.history.active = true;
 
-      this._canvas.instance.fire("object:modified", { target: clone });
-      this._canvas.instance.fire("clip:added", { target: clone });
+      this.canvas.instance.fire("object:modified", { target: clone });
+      this.canvas.instance.fire("clip:added", { target: clone });
+    } else if(type != "audio") {
+      this.canvas.instance.add(clone);
+      this.canvas.instance.setActiveObject(clone).requestRenderAll();
     } else {
-      this._canvas.instance.add(clone);
-      this._canvas.instance.setActiveObject(clone).requestRenderAll();
+      // let audio = await this.canvas.audio.add(clone.url, clone.name, clone.visual ?? false, name);
+      // clone = object.assign(...audio, {offset: clone.offset, timeline: clone.timeline, duration: clone.duration});
+      await this.canvas.audio?.initialize([clone]);
+      clone = this.canvas.audio.get(name)
     }
 
     this._clipboard = clone;
     return clone;
   }
 
-  async clone(object?: fabric.Object) : Promise<fabric.Object> {
-    await this.copy(object);
+  async clone(object?: fabric.Object | EditorAudioElement) : Promise<fabric.Object> {
+    this.copy(object);
     const cloned = await this.paste();
-    // console.log(cloned);
+    console.log("clone", cloned);
     this.destroy();
     return cloned;
   }

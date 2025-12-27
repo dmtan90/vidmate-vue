@@ -106,6 +106,12 @@ export const useCanvasStore = defineStore('canvas', {
     },
     cloner(state) : CanvasClone {
       return this.canvas?.cloner;
+    },
+    audioElements(state) : EditorAudioElement[]{
+      return this.audio?.elements;
+    },
+    clipper(state) : CanvasCropper {
+      return this.canvas?.clipper;
     }
   },
 
@@ -126,6 +132,9 @@ export const useCanvasStore = defineStore('canvas', {
     },
     getTrimmerActive(){
       return this.trimmer?.active;
+    },
+    getClipperActive(){
+      return this.clipper?.active;
     },
     updateRefs(){
       // console.log("updateRefs");
@@ -166,12 +175,12 @@ export const useCanvasStore = defineStore('canvas', {
     //   }
     // },
 
-    initializeRecorder(element: HTMLCanvasElement){
+    initializeRecorder(canvas: HTMLCanvasElement){
       // console.log("initializeRecorder", element);
-      if (!element) {
+      if (!canvas) {
         this.recorder.destroy();
       } else {
-        this.recorder.initialize(element);
+        this.recorder.initialize(canvas);
       }
       this.updateRefs();
     },

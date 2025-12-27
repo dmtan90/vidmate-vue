@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
-import { Up as ChevronUp, Timeline as GanttChart, Pause, Play, Timer, CuttingOne as Split, Copy, Delete as Trash2Icon } from '@icon-park/vue-next';
+import { Up as ChevronUp, Down as ChevronDown, Timeline as GanttChart, Pause, Play, Timer, CuttingOne as Split, ToLeft as KeepLeft, ToRight as KeepRight, Copy, Delete as Trash2Icon, ZoomIn, ZoomOut, FullScreen } from '@icon-park/vue-next';
 import Label from '@/components/ui/label.vue';
 import SliderInput from '@/components/ui/SliderInput.vue';
 import { useIsTablet } from '@/hooks/use-media-query';
@@ -8,12 +8,37 @@ import { useEditorStore } from '@/store/editor';
 import { useCanvasStore } from '@/store/canvas';
 import { storeToRefs } from 'pinia';
 import { formatMediaDuration } from '@/lib/time';
-import { presetDurations, MIN_DURATION, MAX_DURATION } from '@/constants/editor';
+import { presetDurations, MIN_DURATION, MAX_DURATION, formats } from '@/constants/editor';
 import { cn } from '@/lib/utils';
 const editor = useEditorStore();
 const canvasStore = useCanvasStore();
-const { canvas, timeline, animations, selectionActive: active, trimmer, cloner, audio, instance } = storeToRefs(canvasStore);
+const { canvas, timeline, animations, selectionActive: active, trimmer, cloner, audio, instance, workspace } = storeToRefs(canvasStore);
 const isTablet = useIsTablet();
+const currentFormat = computed({
+  get(){
+    let format = null;
+    for(let i = 0; i < formats.length; i++){
+      let item = formats[i]
+      if(workspace.value?.width == item.dimensions.width && workspace.value?.height == item.dimensions.height){
+        format = item;
+        break;
+      }
+    }
+    return format;
+  }
+});
+
+const isFormat = (format) => {
+  // console.log("isFormat", format);
+  if(format.aspectRatio == currentFormat.value?.aspectRatio){
+    return true;
+  }
+  return false;
+}
+
+const resizeArtboards = (dimensions) => {
+  workspace.value?.resizeArtboard(dimensions);
+}
 
 const handleTimelineToggle = () => {
   if (timeline.value?.playing) timeline.value?.pause();
@@ -21,6 +46,9 @@ const handleTimelineToggle = () => {
 };
 
 const disabled = computed(() => timeline.value?.playing || animations.value?.previewing);
+const baseId = computed(() => active?.value?.id || active?.value?.name || "");
+const durationMs = computed(() => active?.value?.meta?.duration || active?.value?.timeline*1000 || 0);
+const offsetMs = computed(() => active?.value?.meta?.offset || active?.value?.offset*1000 || 0);
 
 const duration = computed({
   get(){
@@ -38,7 +66,9 @@ const duration = computed({
   }
 });
 
-const onSplitItem = async () => {
+type SplitOptions = "both" | "left" | "right";
+
+const onSplitItem = async (keep: SplitOptions) => {
   console.log("onSplitItem", active, timeline)
   const seekTimeInSeconds = timeline.value?.seek / 1000;
   const object = active.value;
@@ -46,20 +76,21 @@ const onSplitItem = async () => {
     return;
   }
 
-  const _object = instance.value?.getActiveObject();
+  const _object = instance.value?.getActiveObject() || audio.value.get(active?.value?.id);
   const cloned = await cloner.value?.clone(_object);
+
   if(object.type == 'audio' || object.type == 'video'){
-    const trimStart = cloned.trimStart;
-    const trimEnd = cloned.trimEnd;
-    const duration = cloned.meta.duration;//in ms
-    const offset = cloned.meta.offset;//in ms
-    const _trim = seekTimeInSeconds - offset/1000;
-    const newTrimStart = trimStart + _trim;
-    const newTrimEnd = trimEnd + _trim;
-    const newDuration = offset + duration - seekTimeInSeconds*1000;
-    const newMeta = { duration: newDuration, offset: seekTimeInSeconds * 1000};
-    const _duration = seekTimeInSeconds*1000 - object.meta.offset;
-    const _trimEnd = trimStart + _duration/1000;
+    const trimStartMs = cloned.trimStart || cloned.trim*1000 || 0;
+    const trimEndMs = cloned.trimEnd || cloned.timeline*1000 || 0;
+    const durationMs = cloned.meta?.duration || cloned.timeline*1000 || 0;//in ms
+    const offsetMs = cloned.meta?.offset || cloned.offset*1000 || 0;//in ms
+    const _trim = seekTimeInSeconds - offsetMs/1000;
+    const newTrimStart = trimStartMs + _trim;
+    const newTrimEnd = trimEndMs + _trim;
+    const newDuration = offsetMs + durationMs - seekTimeInSeconds*1000;
+    const newMeta = { duration: newDuration, offset: seekTimeInSeconds*1000};
+    const _duration = seekTimeInSeconds*1000 - (object.meta?.offset || object.offset*1000 || 0);
+    const _trimEnd = trimStartMs + _duration/1000;
 
     if(object.type == 'video'){
       //update clone object
@@ -69,12 +100,13 @@ const onSplitItem = async () => {
       
       //update origin object
       canvas.value.onChangeVideoProperty(_object, "trimEnd", newTrimEnd);
-      canvas.value.onChangeVideoProperty(_object, "meta", { duration: _duration, offset: offset });
+      canvas.value.onChangeVideoProperty(_object, "meta", { duration: _duration, offset: offsetMs });
     }
     else{
-      audio.value?.update(cloned.name, { offset: newMeta.offset/1000, trim: newTrimStart/1000, timeline: newMeta.duration/1000 });
-      audio.value?.update(_object.name, { timeline: _duration/1000 });
+      audio.value?.update(cloned.id, { offset: seekTimeInSeconds, trim: newTrimStart, timeline: newDuration/1000 });
+      audio.value?.update(_object.id, { timeline: _duration/1000 });
     }
+
     const __object = instance.value.getItemByName(_object.name);
     console.log("_object", _object);
   }
@@ -134,14 +166,13 @@ const onSplitItem = async () => {
 const onCloneItem = async () => {
   console.log("onCloneItem", active);
   const object = active.value;
-  let cloned = null;
   if(!object){
-    return cloned;
+    return null;
   }
 
   //clone current object
-  const _object = instance.value?.getActiveObject();
-  cloned = await cloner.value?.clone(_object);
+  const _object = instance.value?.getActiveObject() || audio.value.get(active?.value?.id);
+  const cloned = await cloner.value?.clone(_object);
   return cloned;
 };
 
@@ -151,13 +182,15 @@ const onRemoveItem = () => {
   if(!object){
     return;
   }
+
+  canvas.value.onDeleteActiveObject();
   
-  if(object.type == 'audio'){
-    audio.value?.delete(object.name)
-  }
-  else{
-    canvas.value.onDeleteObject(object);  
-  }
+  // if(object.type == 'audio'){
+  //   audio.value?.delete(object.id)
+  // }
+  // else{
+  //   canvas.value.onDeleteObject(object);  
+  // }
 };
 
 const splitEnabled = computed(() => {
@@ -169,14 +202,20 @@ const splitEnabled = computed(() => {
   let isSplited = false;
   let start = 0;
   let end = 0;
-  if(object.type == "video" || object.type == "audio"){
+
+  if(object.type == "video"){
     start = object.meta.offset / 1000;
     end = object.meta.duration / 1000 + start;
+  }
+  else if(object.type == "audio"){
+    start = object.offset;
+    end = object.timeline + start;
   }
 
   if(start != end && start < seekTimeInSeconds && seekTimeInSeconds < end){
     isSplited = true;
   }
+  console.log("splitEnabled", isSplited);
   return isSplited;
 });
 
@@ -185,12 +224,12 @@ const splitEnabled = computed(() => {
 <template>
   <div class="h-14 sm:h-16 px-4 flex items-center gap-8 justify-between border-b shrink-0 overflow-x-scroll scrollbar-hidden">
     <div class="flex items-center gap-3.5">
-      <el-button size="large" circle type="primary" text bg :disabled="editor.canvas.animations.previewing" @click="handleTimelineToggle">
-        <template v-if="editor.canvas.timeline.playing">
-          <Pause :size="32" />
+      <el-button size="large" circle type="primary" text :disabled="animations.previewing" @click="handleTimelineToggle">
+        <template v-if="timeline.playing">
+          <Pause :size="48" />
         </template>
         <template v-else>
-          <Play :size="32" />
+          <Play :size="48" />
         </template>
       </el-button>
       <div class="text-xs tabular-nums hidden sm:inline">
@@ -204,6 +243,12 @@ const splitEnabled = computed(() => {
           <el-tooltip content="Split" placement="top" v-if="splitEnabled">
             <el-button text round :icon="Split" @click="onSplitItem()" />
           </el-tooltip>
+          <el-tooltip content="Split & Keep Left" placement="top" v-if="splitEnabled">
+            <el-button text round :icon="KeepLeft" @click="onSplitItem()" />
+          </el-tooltip>
+          <el-tooltip content="Split & Keep Right" placement="top" v-if="splitEnabled">
+            <el-button text round :icon="KeepRight" @click="onSplitItem()" />
+          </el-tooltip>
           <el-tooltip content="Copy" placement="top" v-if="!active?.meta?.thumbnail">
             <el-button text round :icon="Copy" @click="onCloneItem()" />
           </el-tooltip>
@@ -213,10 +258,50 @@ const splitEnabled = computed(() => {
         </el-button-group>
       </div>
     </div>
-
-    <!--<template v-if="isTablet">
-      <div class="flex gap-px">
-        <el-popover placement="top-start" trigger="click" width="250px">
+    <div class="flex items-center gap-3">
+      <div class="gap-px hidden md:flex">
+        <el-popover placement="top" trigger="click" width="200px">
+          <template #reference>
+            <el-button type="primary" text bg round class="mx-3" :disabled="disabled" :icon="FullScreen">
+              <span>{{ currentFormat.ratio }}</span>
+            </el-button>
+          </template>
+          <div class="text-xs font-medium">Format</div>
+          <div class="grid grid-cols-2 gap-2 relative max-h-[250px] overflow-y-scroll scrollbar-hidden">
+            <div v-for="format in formats" :key="format.name" class="flex flex-col gap-2">
+              <el-tooltip :content="format.purpose" placement="top">
+                <button :class="cn('group shrink-0 border flex items-center justify-center overflow-hidden rounded-xl shadow-sm transition-colors hover:bg-card p-1.5', isFormat(format) ? 'bg-card' : '')" @click="resizeArtboards(format.dimensions)">
+                  <img :src="format.preview" class="object-contain h-full w-full" />
+                </button>
+              </el-tooltip>
+              <span class="text-xxs text-foreground/60 text-center">{{ format.name }}</span>
+            </div>
+          </div>
+        </el-popover>
+        <el-button-group>
+          <el-button type="primary" text bg round @click="workspace.changeZoom(workspace?.zoom - 0.05)">
+            <ZoomOut :size="15" />
+          </el-button>
+          <el-dropdown class="float-left -mr-4" max-height="200px" @command="(percentage) => workspace.changeZoom(percentage / 100)">
+            <el-button type="primary" text bg>
+              <span class="font-medium">{{ Math.round(workspace?.zoom * 100) }}%</span>
+              <ChevronDown :size="15" />
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item v-for="percentage in [10, 15, 20, 25, 50, 75, 100, 125, 150, 175, 200, 250]" :key="percentage" :command="percentage">
+                  {{ percentage }}%
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-button type="primary" text bg round @click="workspace.changeZoom(workspace?.zoom + 0.05)">
+            <ZoomIn :size="16" />
+          </el-button>
+        </el-button-group>
+      </div>
+      <div class="flex gap-0">
+        <el-popover placement="top-start" trigger="click" width="200px">
           <template #reference>
             <el-button type="primary" text bg round class="gap-1.5 rounded-r-none" :disabled="disabled">
               <Timer :size="15" />
@@ -225,7 +310,7 @@ const splitEnabled = computed(() => {
           </template>
           <Label class="text-xs font-medium">Duration (s)</Label>
           <div class="flex items-center justify-between gap-4">
-            <SliderInput :disabled="disabled" :model-value="duration" :min="5" :max="60" :step="5" @update:model-value="(value) => duration = value"/>
+            <SliderInput :disabled="disabled" :model-value="duration" :min="MIN_DURATION" :max="MAX_DURATION" :step="5" @update:model-value="(value) => duration = value"/>
           </div>
         </el-popover>
         <el-dropdown @command="duration => timeline.set('duration', duration)">
@@ -241,80 +326,15 @@ const splitEnabled = computed(() => {
           </template>
         </el-dropdown>
       </div>
-    </template>
-    <template v-else>
-      <div class="text-xs tabular-nums inline sm:hidden">
-        <span>{{ formatMediaDuration(timeline.seek, isTablet) }}</span>
-        <span class="mx-1">/</span>
-        <span>{{ formatMediaDuration(timeline.duration, isTablet) }}</span>
-      </div>
-    </template>-->
-
-    <div class="flex items-center gap-3">
-      <template v-if="isTablet">
-        <div class="flex gap-0">
-          <el-popover placement="top-start" trigger="click" width="250px">
-            <template #reference>
-              <el-button type="primary" text bg round class="gap-1.5 rounded-r-none" :disabled="disabled">
-                <Timer :size="15" />
-                <span>Duration</span>
-              </el-button>
-            </template>
-            <Label class="text-xs font-medium">Duration (s)</Label>
-            <div class="flex items-center justify-between gap-4">
-              <SliderInput :disabled="disabled" :model-value="duration" :min="MIN_DURATION" :max="MAX_DURATION" :step="5" @update:model-value="(value) => duration = value"/>
-            </div>
-          </el-popover>
-          <el-dropdown @command="duration => timeline.set('duration', duration)">
-            <el-button type="primary" text bg round class="rounded-l-none" :disabled="disabled">
-              <ChevronUp :size="15" />
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu class="min-w-20">
-                <el-dropdown-item v-for="item in presetDurations" :key="item.value" :disabled="disabled || duration == item.value" :command="item.value" class="text-xs pl-2.5">
-                  {{ item.label }}
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </template>
-      <template v-else>
-        <div class="text-xs tabular-nums inline sm:hidden">
-          <span>{{ formatMediaDuration(timeline.seek, isTablet) }}</span>
-          <span class="mx-1">/</span>
-          <span>{{ formatMediaDuration(timeline.duration, isTablet) }}</span>
-        </div>
-      </template>
-      <template v-if="!isTablet">
-        <el-popover placement="top-start" trigger="click" width="200px">
-          <template #reference>
-            <el-button type="primary" text bg round :disabled="disabled">
-              <Timer :size="15" />
-            </el-button>
-          </template>
-          <Label class="text-xs font-medium">Duration (s)</Label>
-          <div class="flex items-center justify-between gap-4">
-            <SliderInput :disabled="disabled" :model-value="duration" :min="5" :max="60" :step="5" @update:model-value="(value) => duration = value"/>
-          </div>
-        </el-popover>
-      </template>
-      <template v-if="isTablet">
-        <el-button type="primary" text bg round class="gap-1.5" @click="editor.onToggleTimeline()">
+      <el-tooltip content="Timeline" placement="top">
+        <el-button type="primary" text bg round class="gap-1.5 hover:active" @click="editor.onToggleTimeline()">
           <GanttChart :size="15" />
           <span>Timeline</span>
           <span :class="cn(editor.timelineOpen ? 'rotate-180' : 'rotate-0')">
             <ChevronUp :size="15" />
           </span>
         </el-button>
-      </template>
-      <template v-else>
-        <el-button type="primary" text bg round @click="editor.onToggleTimeline()">
-          <span :class="cn(editor.timelineOpen ? 'rotate-180' : 'rotate-0')">
-            <ChevronUp :size="15" />
-          </span>
-        </el-button>
-      </template>
+      </el-tooltip>
     </div>
   </div>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, reactive } from 'vue';
-import { PreviewOpen as Eye, PreviewClose as EyeOff, ColorFilter as Pipette, Close as X } from '@icon-park/vue-next';
+import { PreviewOpen as Eye, PreviewCloseOne as EyeOff, ColorFilter as Pipette, Close as X, Aiming } from '@icon-park/vue-next';
 import { toast } from 'vue-sonner';
 
 import GradientSlider from '@/components/slider/gradient.vue';
@@ -198,7 +198,7 @@ const modeOptions = [
 </script>
 
 <template>
-  <div class="h-full w-full">
+  <div class="flex flex-col h-full">
     <div class="flex items-center h-14 border-b px-4 gap-2.5">
       <h2 class="font-semibold">Fill</h2>
       <el-button circle text class="ml-auto h-7 w-7" @click="onToggleFill">
@@ -209,53 +209,48 @@ const modeOptions = [
           <Eye :size="15" :stroke-width="2" />
         </template>
       </el-button>
-      <el-button plain circle class="bg-card h-7 w-7" @click="editor.setActiveSidebarRight(null)">
-        <X :size="15" />
-      </el-button>
+      <el-button circle :icon="X" class="bg-card" @click="editor.setActiveSidebarRight(null)" />
     </div>
-    <section :class="cn('sidebar-container', !disabled ? 'opacity-100 pointer-events-auto' : 'opacity-50 pointer-events-none')">
-      <div class="px-4 py-5">
-        <el-segmented v-model="mode" :options="modeOptions" size="small" class="items-center flex-nowrap h-8 w-full" @change="(value) => onChangeMode(value)">
-          <template #default="scope">
-            <div class="flex flex-col items-center gap-2 p-2">
-              <template v-if="scope.item.value == 'solid'">
-                <span class="text-xs h-full gap-1 flex items-center">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <circle cx="8" cy="8" r="4" fill="currentColor" fill-opacity="0.9" />
-                    <circle opacity="0.75" cx="8" cy="8" r="5.5" stroke="currentColor" stroke-opacity="0.9" />
-                  </svg>
-                  <span>Solid</span>
-                </span>
-              </template>
-              <template v-else>
-                <span class="text-xs h-full gap-1 flex items-center">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <circle cx="8" cy="8" r="4" fill="url(#fill-gradient)" fill-opacity="0.9" />
-                    <circle opacity="0.75" cx="8" cy="8" r="5.5" stroke="currentColor" stroke-opacity="0.9" />
-                    <defs>
-                      <linearGradient id="fill-gradient" x1="8" y1="4" x2="8" y2="12" gradientUnits="userSpaceOnUse">
-                        <stop stop-color="currentColor" />
-                        <stop offset="1" stop-color="currentColor" stop-opacity="0" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  <span>Gradient</span>
-                </span>
-              </template>
-            </div>
-          </template>
-        </el-segmented>
-      </div>
-      <div class="px-4 flex flex-col divide-y">
-        <div class="pb-4 flex flex-col gap-4">
+    <section :class="cn('sidebar-container overflow-x-scroll scrollbar-hidden px-4 py-4', !disabled ? 'opacity-100 pointer-events-auto' : 'opacity-50 pointer-events-none')">
+      <el-segmented v-model="mode" :options="modeOptions" block style="--el-border-radius-base: 20px;" @change="(value) => onChangeMode(value)">
+        <template #default="scope">
+          <div class="flex flex-col items-center gap-2">
+            <template v-if="scope.item.value == 'solid'">
+              <span class="text-xs h-full gap-1 flex items-center">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="8" cy="8" r="4" fill="currentColor" fill-opacity="0.9" />
+                  <circle opacity="0.75" cx="8" cy="8" r="5.5" stroke="currentColor" stroke-opacity="0.9" />
+                </svg>
+                <span>Solid</span>
+              </span>
+            </template>
+            <template v-else>
+              <span class="text-xs h-full gap-1 flex items-center">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="8" cy="8" r="4" fill="url(#fill-gradient)" fill-opacity="0.9" />
+                  <circle opacity="0.75" cx="8" cy="8" r="5.5" stroke="currentColor" stroke-opacity="0.9" />
+                  <defs>
+                    <linearGradient id="fill-gradient" x1="8" y1="4" x2="8" y2="12" gradientUnits="userSpaceOnUse">
+                      <stop stop-color="currentColor" />
+                      <stop offset="1" stop-color="currentColor" stop-opacity="0" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <span>Gradient</span>
+              </span>
+            </template>
+          </div>
+        </template>
+      </el-segmented>
+      <div class="flex flex-col divide-y">
+        <div class="pb-4 pt-4 flex flex-col gap-4">
           <div v-if="mode === 'gradient'" ref="containerRef">
             <GradientSlider :width="measure.width" :colors="colors" :coords="coords" :selected="index" @select="index = $event" @change="onChangeOffset" @rotate="onRotateGradient" />
           </div>
-          <el-button v-if="eyeDropperStatus" text bg round class="gap-2 justify-between w-full shadow-none" @click="onOpenEyeDropper">
-            <Pipette :size="15" />
-            <span>Pick color from page</span>
-          </el-button>
           <ChromePicker v-model="color" @update:model-value="(color) => onChangeColor(tinycolor(color))" class="shadow-none w-full" />
+          <el-button v-if="eyeDropperStatus" text bg round :icon="Aiming" class="w-full" @click="onOpenEyeDropper">
+            <span>Pickup color</span>
+          </el-button>
         </div>
         <template v-if="editor.mode === 'creator' || !editor.adapter.brand">
           <!-- Render nothing -->

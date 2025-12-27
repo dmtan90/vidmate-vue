@@ -6,6 +6,7 @@ import { useCanvasStore } from '@/store/canvas';
 import { storeToRefs } from "pinia";
 import BaseElement from "./BaseElement.vue";
 import { MoreOne, UpSquare, DownSquare, Copy, Delete } from "@icon-park/vue-next";
+import { defaultBackgroundColor } from "@/fabric/constants"
 
 const props = defineProps({
   page: {
@@ -15,8 +16,9 @@ const props = defineProps({
 });
 
 const editor = useEditorStore();
-const { pages, page : activePage } = storeToRefs(editor);
+const { pages, page : activePage, dimension } = storeToRefs(editor);
 const sceneWrapper = ref<HtmlELement>(null);
+const container = ref<HtmlELement>(null);
 const { instance } = storeToRefs(editor);
 // const canvasStore = useCanvasStore();
 // const { timeline } = storeToRefs(canvasStore);
@@ -24,21 +26,26 @@ const { instance } = storeToRefs(editor);
 // const thumbnail = ref(null);
 // const { pages } = storeToRefs(editor);
 // const page = computed(() => pages[props.pages]);
-const elements = computed(() => editor.pages[props.page].elements);
+const artboard = computed(() => editor.pages[props.page].artboard);
+const workspace = computed(() => editor.pages[props.page].workspace);
+const elements = computed(() => editor.pages[props.page]?.thumbnailElements);
 const scale = ref(0.1);
-// const scaleH = ref(0.1);
-// const bound = computed(() => sceneWrapper.value?.parentNode?.getBoundingClientRect());
 const style = reactive({
-  width: instance.value.dimension.width + "px",
-  height: instance.value.dimension.height + "px",
+  width: instance.value?.dimension?.width + "px",
+  height: instance.value?.dimension?.height + "px",
   "--scale": scale.value,
 });
+
+const backgroundColor = computed(() => artboard.value?.fill || defaultBackgroundColor);
+
 const computeStyle = () => {
+  console.log("computeStyle");
   const bound = sceneWrapper.value?.parentNode?.getBoundingClientRect();
   const workspace = instance.value.dimension;
   let scaleW = bound == null ? 0.1 : (bound.width / workspace.width);
   let scaleH = bound == null ? 0.1 : (bound.height / workspace.height);
-  scale.value = Math.min(scaleW, scaleH);
+  let scaleMin = Math.min(scaleW, scaleH);
+  scale.value = parseFloat(scaleMin.toFixed(2));
   // if(bound.width > bound.height){//fix width
   //   scale.value = Math.min(scaleW, scaleH);
   // }
@@ -48,17 +55,28 @@ const computeStyle = () => {
   style.width = workspace.width + "px";
   style.height = workspace.height + "px";
   style["--scale"] = scale;
-  // style["--scaleH"] = maxScale;
 };
+
+watch([sceneWrapper, elements], (value) => {
+  if(value){
+    computeStyle();
+  }
+})
+
+// watch(elements, (value) => {
+//   if(value){
+//     computeStyle();
+//   }
+// });
 
 onMounted(() => {
   // console.log(elements, style);
   computeStyle();
 });
 
-// watch(timeline, (value) => {
-//   console.log("page", value);
-// });
+watch(artboard, (value) => {
+  console.log("artboard", value);
+});
 
 const handleSceneAction = (cmd) => {
   const page = props.page;
@@ -69,7 +87,7 @@ const handleSceneAction = (cmd) => {
     editor.swapPage(page, page + 1);
   }
   else if(cmd == "copy"){
-    editor.copyPage(page);
+    editor.copyPage(page)
   }
   else if(cmd == "delete"){
     editor.deletePage(page);
@@ -79,15 +97,15 @@ const handleSceneAction = (cmd) => {
 </script>
 
 <template>
-  <div class="relative p-0 h-full">
+  <div ref="container" class="relative p-0 h-full" :style="{backgroundColor: backgroundColor}">
     <div v-if="elements && elements.length > 0" ref="sceneWrapper" class="scene-wrapper" :style="style">
       <BaseElement 
         v-for="(element,index) in elements" :key="element" :page="page" :element="element" :scale="1"
       />
     </div>
     <el-empty v-else :image-size="32" class="" :description="'Scene ' + (page + 1)"/>
-    <el-dropdown @command="handleSceneAction" class="absolute right-1 top-1 z-10">
-      <el-button type="primary" text circle>
+    <el-dropdown @command="handleSceneAction" class="absolute right-1 top-1 z-10" trigger="hover">
+      <el-button type="primary" text circle @click.stop.prevent="">
         <MoreOne :size="15" />
       </el-button>
       <template #dropdown>

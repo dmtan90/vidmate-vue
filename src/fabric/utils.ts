@@ -9,7 +9,7 @@ import { queryClient } from "@/config/api";
 import type { EditorFont } from "@/constants/fonts";
 import { createInstance, createPromise } from "@/lib/utils";
 import type { EditorAudioElement } from "@/types/editor";
-import type { EditorMode } from "@/plugins/editor";
+import type { EditorMode, Dimension } from "@/plugins/editor";
 import { formatSource } from "@/lib/media";
 
 export interface TransformChildren {
@@ -79,6 +79,7 @@ export abstract class FabricUtils {
   }
 
   static initializeMetaProperties(object: fabric.Object, props?: Record<string, any>) {
+    // console.log("initializeMetaProperties", object, props);
     object.meta = { duration: 5000, offset: 0, ...(object.meta || {}) };
     if (!props) return;
     for (const key in props) object.meta[key] = props[key];
@@ -93,6 +94,7 @@ export abstract class FabricUtils {
   }
 
   static bindObjectTransformToParent(parent: fabric.Object, children: fabric.Object[]) {
+    // console.log("bindObjectTransformToParent", parent, children);
     const invertedTransform = fabric.util.invertTransform(parent.calcTransformMatrix());
     for (const child of children) {
       if (!child.meta) this.initializeMetaProperties(child);
@@ -105,6 +107,7 @@ export abstract class FabricUtils {
   }
 
   static updateObjectTransformToParent(parent: fabric.Object, children: Array<TransformChildren>) {
+    // console.log("updateObjectTransformToParent", parent, children);
     for (const child of children) {
       if (!child.object.meta || !child.object.meta.transformMatrix || !Array.isArray(child.object.meta.transformMatrix)) continue;
 
@@ -129,35 +132,79 @@ export abstract class FabricUtils {
   }
 
   static applyObjectScaleToDimensions(object: fabric.Object, list?: string[]) {
+    // console.log("applyObjectScaleToDimensions", object, list);
     if (!list || list.includes(object.type!)) {
+      // console.log("scale", object.scaleX, object.scaleY);
+      if(object.scaleX == 1 && object.scaleY == 1){
+        return;
+      }
+
+      const keepRatio = object.keepRatio ?? false;
       switch (object.type) {
         case "textbox": {
           const textbox = object as fabric.Textbox;
           textbox.set({ fontSize: Math.round(textbox.fontSize! * textbox.scaleY!), width: textbox.width! * textbox.scaleX!, scaleY: 1, scaleX: 1 });
           break;
         }
-        case "rect": {
-          const width = object.width! * object.scaleX!;
-          const height = object.height! * object.scaleY!;
+        case "rect":{
+          let width = object.width! * object.scaleX!;
+          let height = object.height! * object.scaleY!;
+          if(keepRatio){
+            if(object.scaleX != 1){
+              //force update by width
+              height = width * object.height! / object.width!
+            }
+            else if(object.scaleY != 1){
+              //force update by height
+              width = height * object.width! / object.height!;
+            }
+          }
+          
           object.set({ width: width, height: height, scaleX: 1, scaleY: 1 });
           break;
         }
         case "triangle": {
-          const width = object.width! * object.scaleX!;
-          const height = object.height! * object.scaleY!;
+          let width = object.width! * object.scaleX!;
+          let height = object.height! * object.scaleY!;
+          if(keepRatio){
+            if(object.scaleX != 1){
+              //force update by width
+              height = width * object.height! / object.width!
+            }
+            else if(object.scaleY != 1){
+              //force update by height
+              width = height * object.width! / object.height!;
+            }
+          }
           object.set({ width: width, height: height, scaleX: 1, scaleY: 1 });
           break;
         }
         case "ellipse": {
           const ellipse = object as fabric.Ellipse;
-          const rx = ellipse.rx! * object.scaleX!;
-          const ry = ellipse.ry! * object.scaleY!;
+          let rx = ellipse.rx! * object.scaleX!;
+          let ry = ellipse.ry! * object.scaleY!;
+          if(keepRatio){
+            if(object.scaleX != 1){
+              //force update by width
+              ry = rx * ellipse.ry! / ellipse.rx!
+            }
+            else if(object.scaleY != 1){
+              //force update by height
+              rx = ry * ellipse.rx! / ellipse.ry!;
+            }
+          }
           ellipse.set({ rx: rx, ry: ry, scaleX: 1, scaleY: 1 });
           break;
         }
         case "circle": {
           const circle = object as fabric.Circle;
-          const radius = circle.radius! * object.scaleX!;
+          let radius = circle.radius! * object.scaleX!;
+          if(object.scaleX != 1){
+            radius = circle.radius! * object.scaleX!;
+          }
+          else if(object.scaleY != 1){
+            radius = circle.radius! * object.scaleY!;
+          }
           circle.set({ radius: radius, scaleX: 1, scaleY: 1 });
           break;
         }
@@ -178,6 +225,7 @@ export abstract class FabricUtils {
   }
 
   static objectSpinningAnimation(object: fabric.Object, duration = 750, loop = true, abort?: Function) {
+    // console.log("objectSpinningAnimation", object, duration, loop);
     fabric.util.animate({
       startValue: object.angle!,
       endValue: object.angle! + 360,
@@ -198,13 +246,14 @@ export abstract class FabricUtils {
   }
 
   static applyTransformationsAfterLoad(canvas: fabric.Canvas | fabric.StaticCanvas) {
+    // console.log("applyTransformationsAfterLoad", canvas);
     for (const object of canvas._objects) {
       object.set({ objectCaching: false });
       if (object.clipPath) {
         const existing = canvas.getItemByName(object.clipPath.name);
         if (existing) canvas.remove(existing);
         const clipPath = object.clipPath;
-        clipPath.set({ objectCaching: false });
+        clipPath.set({ objectCaching: false, opacity: 0.01, excludeFromTimeline: true });
         canvas.add(clipPath);
         FabricUtils.bindObjectTransformToParent(object, [clipPath]);
         const handler = FabricUtils.updateObjectTransformToParent.bind(this, object, [{ object: clipPath }]);
@@ -215,7 +264,50 @@ export abstract class FabricUtils {
     }
   }
 
+  static transformObjectsToMatchWorkspace(objects: fabric.Object[], templateWorkspace: Dimension, canvasWorkspace: Dimension){
+    // console.log("transformObjectsToMatchWorkspace", objects, templateWorkspace, canvasWorkspace);
+    try{
+      if(!objects || objects.length == 0 || !templateWorkspace || !canvasWorkspace || (templateWorkspace.width == canvasWorkspace.width && templateWorkspace.height == canvasWorkspace.height)){
+        return
+      }
+
+      //move objects to center of canvas
+      let deltaX = (canvasWorkspace.width - templateWorkspace.width) / 2;
+      let deltaY = (canvasWorkspace.height - templateWorkspace.height) / 2;
+      let scaleRatio = templateWorkspace.height * canvasWorkspace.width/canvasWorkspace.height;
+      if(deltaX == 0 || deltaY == 0){//fit width or height
+        for(let i = 0; i < objects.length; i++){
+          const object = objects[i]
+          object.left += deltaX;
+          object.top += deltaY;
+          if(object.clipPath){
+            object.clipPath.left += deltaX;
+            object.clipPath.top += deltaY;
+          }
+        }
+      }
+      else{//scale objects to fit ratio
+        for(let i = 0; i < objects.length; i++){
+          const object = objects[i]
+          object.left += deltaX
+          object.top += deltaY;
+          object.width *= scaleRatio;
+          object.height *= scaleRatio;
+          if(object.clipPath){
+            object.clipPath.left += deltaX;
+            object.clipPath.top += deltaY;
+            object.clipPath.width *= scaleRatio;
+            object.clipPath.height *= scaleRatio;
+          }
+        }
+      }
+    }catch(error){
+      console.error("transformObjectsToMatchWorkspace error:", error)
+    }
+  }
+
   static async applyModificationsAfterLoad(objects: fabric.Object[], { product, objective, brand }: any, mode: EditorMode) {
+    // console.log("applyModificationsAfterLoad", objects, mode, product, objective, brand);
     if (mode === "creator") return;
 
     if (brand) {
@@ -379,7 +471,7 @@ export abstract class FabricUtils {
       });
 
       object.clone((clonedObject) => {
-        console.log("clonedObject", clonedObject);
+        // console.log("clonedObject", clonedObject);
         clonedObject.set({ left: 0, top: 0 }); // Position at origin of temp canvas
         fcanvas.add(clonedObject);
         fcanvas.renderAll();

@@ -6,18 +6,20 @@ import Spinner from '@/components/ui/spinner.vue';
 import Label from '@/components/ui/label.vue';
 
 import { useEditorStore } from '@/store/editor';
+import { storeToRefs } from "pinia";
 import { ExportProgress, type ExportMode } from '@/plugins/editor';
 import { createFileDownload, createFileDownloads } from '@/lib/utils';
-import { codecs, fetchExtensionByCodec, fps } from '@/constants/recorder';
+import { codecs, fetchExtensionByCodec, fps, scales } from '@/constants/recorder';
 
 import ProgressIcon from './ProgressIcon.vue';
 import ProgressText from './ProgressText.vue';
 
 const editor = useEditorStore();
-
+const { dimension } = storeToRefs(editor);
 const codec = computed(() => fetchExtensionByCodec(editor.codec));
-const progress = computed(() => editor.progress.capture * 0.4 + editor.progress.compile * 0.6);
+const progress = computed(() => editor.progress.capture * 0.6 + editor.progress.compile * 0.4);
 const videoSource = ref(editor.blob ? URL.createObjectURL(editor.blob) : null);
+const exportScale = ref(1);
 
 const handleExportVideo = async () => {
   try {
@@ -26,9 +28,14 @@ const handleExportVideo = async () => {
     }
     videoSource.value = null;
     const blob = await editor.exportVideo();
-    const file = (editor.file || "output") + "." + codec.value.extension;
-    createFileDownload(blob, file);
-    videoSource.value = URL.createObjectURL(blob);
+    if(blob){
+      const file = (editor.file || "output") + "." + codec.value.extension;
+      createFileDownload(blob, file);
+      videoSource.value = URL.createObjectURL(blob);  
+    }
+    else{
+      toast.error(error.message || "Failed to export video");  
+    }
   } catch (e) {
     const error = e as Error;
     console.warn(error);
@@ -56,6 +63,16 @@ const exportCodec = computed({
   }
 });
 
+// const exportScale = computed({
+//   get(){
+//     return scale;
+//   },
+
+//   set(value){
+//     scale = value;
+//   }
+// })
+
 const fileName = computed({
   get(){
     return editor.file;
@@ -76,6 +93,13 @@ const exportMode = computed({
   }
 });
 
+const resolution = computed({
+  get(){
+    console.log(dimension);
+    return (dimension.value?.width*exportScale.value) + "x" + (dimension.value?.height*exportScale.value);
+  },
+});
+
 </script>
 
 <template>
@@ -94,6 +118,12 @@ const exportMode = computed({
         <label class="text-xs font-semibold">Export Settings</label>
         <div class="flex flex-col px-2.5 pt-3.5 gap-3">
           <div class="grid grid-cols-12 items-center">
+            <Label class="text-xs col-span-3">Resolution</Label>
+            <div class="flex col-span-9">
+              {{ resolution }}
+            </div>
+          </div>
+          <div class="grid grid-cols-12 items-center">
             <Label class="text-xs col-span-3">FPS</Label>
             <div class="flex col-span-9">
               <el-select v-model="exportFps" class="w-full">
@@ -106,6 +136,14 @@ const exportMode = computed({
             <div class="flex col-span-9">
               <el-select v-model="exportCodec" class="w-full">
                 <el-option v-for="c in codecs" :key="c" :value="c" :label="c" />
+              </el-select>
+            </div>
+          </div>
+          <div class="grid grid-cols-12 items-center">
+            <Label class="text-xs col-span-3">Scale Up</Label>
+            <div class="flex col-span-9">
+              <el-select v-model="exportScale" class="w-full">
+                <el-option v-for="c in scales" :key="c" :value="c" :label="c + 'x'" />
               </el-select>
             </div>
           </div>

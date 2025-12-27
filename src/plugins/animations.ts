@@ -48,6 +48,10 @@ export class CanvasAnimations {
     return this._canvas.text;
   }
 
+  get anim(){
+    return this._canvas.anim;
+  }
+
   private _update(value) {
     // console.log("anime update", value);
     this.canvas.renderAll();

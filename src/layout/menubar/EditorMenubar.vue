@@ -3,8 +3,9 @@ import { computed, ref } from 'vue';
 import { useMutation } from '@tanstack/vue-query';
 import { toast } from 'vue-sonner';
 import { storeToRefs } from "pinia";
+import { cn } from '@/lib/utils';
 
-import { Down as ChevronDown, Right as ChevronRight, Upload as CloudUpload, SettingTwo as Cog, SplitCells as Columns2, ImageFiles as Image, AllApplication as Menu, Redo, Undo, ZoomIn, ZoomOut, Config as Settings } from '@icon-park/vue-next';
+import { Down as ChevronDown, Right as ChevronRight, Upload as CloudUpload, SettingTwo as Cog, SplitCells as Columns2, ImageFiles as Image, AllApplication as Menu, Redo, Undo, ZoomIn, ZoomOut, Config as Settings, Edit } from '@icon-park/vue-next';
 import Spinner from '@/components/ui/spinner.vue';
 // import Label from '@/components/ui/label.vue';
 import ThemeToggle from '@/components/ui/theme-toggle.vue';
@@ -16,9 +17,10 @@ import { fetchExtensionByCodec } from '@/constants/recorder';
 import { maxZoom, minZoom, formats } from '@/constants/editor';
 import { useMockStore } from '@/constants/mock';
 import type { EditorMode, EditorTemplate } from '@/store/editor';
+import type { Dimension } from '@/plugin/editor'
 
 const editor = useEditorStore();
-const { name } = storeToRefs(editor);
+const { name, dimension } = storeToRefs(editor);
 const codec = computed(() => fetchExtensionByCodec(editor.codec));
 const isTablet = useIsTablet();
 const mock = useMockStore();
@@ -90,9 +92,21 @@ const fileName = computed({
   }
 });
 
-const resizeArtboards = (dimensions: { width: number; height: number }) => {
-  editor.resizeArtboards(dimensions);
+const resize = (size: Dimension) => {
+  if(size?.width != dimension.value?.width || size?.height != dimension.value?.height){
+    editor.resize(size);
+  }
 };
+
+
+const isFormat = (format) => {
+  // console.log(format);
+  const ratio = (dimension?.value?.width ?? 1920) / (dimension?.value?.height) ?? 1080;
+  if(ratio == format.aspectRatio){
+    return true;
+  }
+  return false;
+}
 
 </script>
 
@@ -104,14 +118,14 @@ const resizeArtboards = (dimensions: { width: number; height: number }) => {
           <div class="max-w-full pt-3 pb-1 divide-y divide-border/50">
             <el-button text class="gap-3 justify-start w-full h-11" :loading="editor.saving" :disabled="uploadTemplate.isPending.value" @click="handleSaveTemplate">
               <CloudUpload :size="15" />
-              <span class="font-medium">Save Template</span>
+              <span class="font-medium">Save</span>
               <span class="ml-auto">
                 <ChevronRight class="text-gray-400" :size="15" />
               </span>
             </el-button>
             <el-button text class="gap-3 justify-start w-full h-11" @click="editor.onTogglePreviewModal('open')">
               <Image :size="15" />
-              <span class="font-medium">Export Video</span>
+              <span class="font-medium">Export</span>
               <span class="ml-auto">
                 <ChevronRight class="text-gray-400" :size="15" />
               </span>
@@ -136,7 +150,7 @@ const resizeArtboards = (dimensions: { width: number; height: number }) => {
               <el-text class="w-[100px]" truncated>
                 {{ fileName }}
               </el-text>
-              <Settings :size="15" />
+              <Edit :size="15" />
             </el-button>
           </template>
           <div class="grid gap-y-2">
@@ -145,9 +159,9 @@ const resizeArtboards = (dimensions: { width: number; height: number }) => {
               <el-input type="text" v-model="fileName" class="w-full"/>
             </div>
             <div class="text-xs font-medium">Format</div>
-            <div class="grid grid-cols-3 gap-4 relative max-h-[250px] overflow-y-scroll scrollbar-hidden">
+            <div class="grid grid-cols-3 gap-1 relative max-h-[250px] overflow-y-scroll scrollbar-hidden">
               <div v-for="format in formats" :key="format.name" class="flex flex-col gap-2">
-                <button class="group shrink-0 border flex items-center justify-center overflow-hidden rounded-md shadow-sm transition-colors hover:bg-card p-1.5" @click="resizeArtboards(format.dimensions)">
+                <button :class="cn('group shrink-0 border flex items-center justify-center overflow-hidden rounded-xl shadow-sm transition-colors hover:bg-card p-1.5', isFormat(format) ? 'bg-card' : '')" @click="resize(format.dimensions)">
                   <img :src="format.preview" class="object-contain h-full w-full" />
                 </button>
                 <span class="text-xxs text-foreground/60 text-center">{{ format.name }}</span>
@@ -169,7 +183,7 @@ const resizeArtboards = (dimensions: { width: number; height: number }) => {
       </div>
     </section>
     <section id="right" class="ml-auto flex gap-3">
-      <div class="gap-px hidden md:flex">
+      <!--<div class="gap-px hidden md:flex">
         <el-button-group>
           <el-button type="primary" text bg round @click="editor.canvas.workspace.changeZoom(editor.canvas.workspace.zoom - 0.05)">
             <ZoomOut :size="15" />
@@ -191,20 +205,20 @@ const resizeArtboards = (dimensions: { width: number; height: number }) => {
             <ZoomIn :size="16" />
           </el-button>
         </el-button-group>
-      </div>
-      <el-button type="primary" text bg round class="gap-2 w-40 hidden sm:flex" :loading="editor.saving" :disabled="uploadTemplate.isPending.value" @click="handleSaveTemplate">
+      </div>-->
+      <el-button type="primary" text bg round class="gap-2 hidden sm:flex" :loading="editor.saving" :disabled="uploadTemplate.isPending.value" @click="handleSaveTemplate">
         <CloudUpload :size="15" />
-        <span class="font-medium ml-1">Save Template</span>
+        <span class="font-medium ml-1">Save</span>
       </el-button>
-      <el-button type="primary" text bg round class="gap-2 w-36 ml-0" @click="editor.onTogglePreviewModal('open')">
+      <el-button type="primary" text bg round class="gap-2 ml-0" @click="editor.onTogglePreviewModal('open')">
         <Image :size="15" />
-        <span class="font-medium ml-1">Export Video</span>
+        <span class="font-medium ml-1">Export</span>
       </el-button>
       <!--<div class="hidden sm:flex gap-px">
         <el-button-group>
           <el-button type="primary" text bg round class="gap-2 w-36" @click="handleExportVideo">
             <Image :size="15" />
-            <span class="font-medium ml-1">Export Video</span>
+            <span class="font-medium ml-1">Export</span>
           </el-button>
           <el-button type="primary" text bg round @click="editor.onTogglePreviewModal('open')">
             <ChevronDown :size="15" />

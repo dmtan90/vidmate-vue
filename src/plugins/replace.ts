@@ -59,7 +59,7 @@ export class CanvasReplace {
     });
   }
 
-  async replaceVideo(video: fabric.Video, source: string) {
+  async replaceVideo(video: fabric.Video, source: string, thumbnail: string) {
     video.meta!.replacing = true;
     return createPromise<fabric.Video>((resolve, reject) => {
       fabric.util.loadVideo(
@@ -73,12 +73,22 @@ export class CanvasReplace {
             element.loop = false;
             element.currentTime = 0;
 
-            element.muted = video.muted() ?? false;
+            element.muted = video._muted() ?? (hasAudio ? false : true);
             element.crossOrigin = video.crossOrigin ?? null;
 
             video.setElement(element);
             video.meta!.replacing = false;
-            video.set({ scaleX: video.scaleX, scaleY: video.scaleY, left: video.left, top: video.top, angle: video.angle, cropX: video.cropX, cropY: video.cropY, hasAudio: hasAudio });
+            video.set({ 
+              scaleX: video.scaleX, 
+              scaleY: video.scaleY, 
+              left: video.left, 
+              top: video.top, 
+              angle: video.angle, 
+              cropX: video.cropX, 
+              cropY: video.cropY, 
+              hasAudio: hasAudio,
+              thumbnail: thumbnail 
+            });
 
             this.canvas.requestRenderAll();
             resolve(video);
@@ -99,7 +109,7 @@ export class CanvasReplace {
     return this.active;
   }
 
-  async replace(source: string, cache?: boolean) {
+  async replace(source: string, cache?: boolean, thumbnail?: string) {
     if (!this.active) return;
     switch (this.active.type) {
       case "image":
@@ -108,7 +118,7 @@ export class CanvasReplace {
         if (cache) rmbgAI.removeCacheEntry(this.active.object.name!);
         break;
       case "video":
-        this.replaceVideo(this.active.object, source);
+        this.replaceVideo(this.active.object, source, thumbnail);
         break;
     }
 

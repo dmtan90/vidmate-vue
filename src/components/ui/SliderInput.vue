@@ -23,15 +23,17 @@ const handleInputChange = (value: string | number) => {
 </script>
 
 <template>
-  <el-slider :size="props.size" :min="props.min" :max="props.max" :step="props.step" :model-value="props.modelValue" :disabled="props.disabled" @update:model-value="handleSliderChange"/>
-  <el-input-number :size="props.size"
-    controls-position="right"
-    class="ml-1 h-8 w-30 text-xs [&_.el-input__wrapper]:pl-5"
-    :model-value="props.modelValue"
-    :disabled="props.disabled"
-    @update:model-value="handleInputChange"
-    :min="props.min" :max="props.max" :step="props.step"
-  />
+  <div class="flex gap-4 items-center justify-between">
+    <el-slider :size="props.size" :min="props.min" :max="props.max" :step="props.step" :model-value="props.modelValue" :disabled="props.disabled" @update:model-value="handleSliderChange"/>
+    <el-input-number :size="props.size"
+      controls-position="right"
+      class="h-8 w-35 text-xs [&_.el-input__wrapper]:pl-5"
+      :model-value="props.modelValue"
+      :disabled="props.disabled"
+      @update:model-value="handleInputChange"
+      :min="props.min" :max="props.max" :step="props.step"
+    />
+  </div>
 </template>
 
 <style>

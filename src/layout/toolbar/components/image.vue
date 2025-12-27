@@ -21,10 +21,9 @@ const { canvas, selectionActive: selected, cropper } = storeToRefs(canvasStore);
 
 <template>
   <div class="flex items-center h-full w-full overflow-x-scroll scrollbar-hidden">
-    <div class="flex items-center gap-2.5">
-      <el-button type="primary" text bg round @click="cropper.cropActiveObject()" plain class="gap-1.5">
-        <Crop :size="15" />
-        <span class="text-xs font-normal">Crop</span>
+    <div class="flex items-center">
+      <el-button :icon="Crop" class="px-2.5" text bg round @click="cropper.cropActiveObject()">
+        <span>Crop</span>
       </el-button>
     </div>
     <el-divider direction="vertical" class="h-8" />
@@ -35,19 +34,21 @@ const { canvas, selectionActive: selected, cropper } = storeToRefs(canvasStore);
     <div class="flex items-center">
       <el-button
         @click="editor.setActiveSidebarRight(editor.sidebarRight === 'filters' ? null : 'filters')"
-        type="primary" text bg round
-        :class="cn('gap-1.5', editor.sidebarRight === 'filters' ? 'bg-card' : '', !selected?.filters?.length ? '' : 'text-foreground')"
+        :icon="Wand" text bg round
+        :type="!selected?.filters?.length ? '' : 'primary'"
+        :disabled="editor.sidebarRight === 'filters'"
+        :class="cn('px-2.5')"
       >
-        <Wand :size="15" />
-        <span>Filters</span>
+        <span>Filter</span>
       </el-button>
       <el-button
         @click="editor.setActiveSidebarRight(editor.sidebarRight === 'clip' ? null : 'clip')"
-        type="primary" text bg round
-        :class="cn('gap-1.5', editor.sidebarRight === 'clip' ? 'bg-card' : '', !selected?.clipPath ? '' : 'text-foreground')"
+        :icon="Blend" text bg round
+        :type="!selected?.clipPath ? '' : 'primary'"
+        :disabled="editor.sidebarRight === 'clip'"
+        :class="cn('px-2.5')"
       >
-        <Blend :size="15" />
-        <span>Clip Mask</span>
+        <span>Mask</span>
       </el-button>
     </div>
     <el-divider direction="vertical" class="h-8" />

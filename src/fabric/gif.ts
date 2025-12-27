@@ -21,12 +21,18 @@ const gifToFrames = async (url: string, width: number, height: number) => {
     const arrayBuffer = await reponse.arrayBuffer();
     const gif = parseGIF(arrayBuffer)
     let frames = decompressFrames(gif, true);
-    frames = frames.map(frame => {
-      const canvas = document.createElement('canvas');
-      canvas.width = width;//frame.dims.width;
-      canvas.height = height;//frame.dims.height;
-      const ctx = canvas.getContext('2d');
+    let i = 0;
+    let canvas = document.createElement('canvas');
+    canvas.width = width;//frame.dims.width;
+    canvas.height = height;//frame.dims.height;
+    const ctx = canvas.getContext('2d');
 
+    frames = frames.map(frame => {
+      // if(i == 0){
+      //   console.log("transparentIndex", frame.transparentIndex, frame.pixels, frame.patch, frame.colorTable);
+      //   i++;
+      // }
+      ctx.clearRect(0, 0, width, height);
       // Create ImageData from frame patch data (assuming buildPatch was true)
       const imageData = ctx.createImageData(frame.dims.width, frame.dims.height);
       imageData.data.set(frame.patch); // 'frame.patch' contains the pixel data
@@ -62,6 +68,7 @@ const gifToFrames = async (url: string, width: number, height: number) => {
       // const url = URL.createObjectURL(blob);
       return { img: imageUrl, delay: frame.delay };
     });
+    canvas = null;
     return frames;
   }catch(err){
     return null;
@@ -124,7 +131,7 @@ const Gif = fabric.util.createClass(fabric.Image, {
     // console.log(this.src);
     this.setSrc(this.src, function(img) {
       img.canvas.renderAll(); // Important: Re-render the canvas to see the change
-    });
+    }, {crossOrigin: "anonymous"});
   },
 
   seek: function(seconds: number) {
@@ -158,7 +165,7 @@ const Gif = fabric.util.createClass(fabric.Image, {
     // image.src = src;
     this.setSrc(src, function(img) {
       img.canvas.renderAll(); // Important: Re-render the canvas to see the change
-    });
+    }, {crossOrigin: "anonymous"});
   },
 
   /**
@@ -205,22 +212,32 @@ const Gif = fabric.util.createClass(fabric.Image, {
 });
 
 Gif.fromURL = function (url: string, callback: (gif: fabric.Gif | null) => void, options?: fabric.IImageOptions) {
-  const element = document.createElement("img");
-  element.crossOrigin = options?.crossOrigin ?? "anonymous";
+  // const element = document.createElement("img");
+  // element.crossOrigin = options?.crossOrigin ?? "anonymous";
 
-  element.onload = () => {
-    element.onload = null;
-    element.onerror = null;
-    callback(createInstance(Gif, element, options));
-  };
+  // element.onload = () => {
+  //   element.onload = null;
+  //   element.onerror = null;
+  //   callback(createInstance(Gif, element, options));
+  // };
 
-  element.onerror = () => {
-    element.onload = null;
-    element.onerror = null;
-    callback(null);
-  };
+  // element.onerror = () => {
+  //   element.onload = null;
+  //   element.onerror = null;
+  //   callback(null);
+  // };
 
-  element.src = url;
+  // element.src = url;
+  fabric.util.loadImage(url, (image) => {
+      if (!image || !image.height || !image.width) {
+        callback(null);
+      } else {
+        callback(createInstance(Gif, image, options));
+      }
+    },
+    null,
+    "anonymous",
+  );
 };
 
 Gif.fromElement = function (element: HTMLImageElement, callback: (gif: fabric.Gif | null) => void, options?: fabric.IImageOptions) {

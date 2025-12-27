@@ -78,7 +78,9 @@ export class CanvasTimeline {
       this._toggleElements();
     } else {
       this.pause();
+      this.seek = 0;
     }
+    // console.log("_update", this.duration, anim.currentTime);
   }
 
   private _complete(_: anime.AnimeInstance) {
@@ -86,6 +88,7 @@ export class CanvasTimeline {
     this.playing = false;
     this._resetTimeline();
     this.canvas.fire("timeline:stop");
+    // console.log("_complete");
   }
 
   private _initializeTimeline() {
@@ -109,6 +112,7 @@ export class CanvasTimeline {
       }
     }
     this._toggleElements();
+    // console.log("_resetTimeline", this.seek);
   }
 
   initialize(duration: number) {

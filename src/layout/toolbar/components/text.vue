@@ -161,19 +161,18 @@ const textAlignOptions = [
 
 <template>
   <div class="flex items-center h-full w-full overflow-x-scroll scrollbar-hidden text-toolbar">
-    <div class="flex items-center gap-4">
-      <el-button
-        type="primary" text bg round
-        :class="cn('gap-1.5 justify-start px-2.5', editor.sidebarRight === 'fonts' ? 'bg-card' : '')"
+    <div class="flex items-center gap-2">
+      <el-button :icon="Ligature"
+        text bg round
+        :class="cn('px-2.5', editor.sidebarRight === 'fonts' ? 'bg-card' : '')"
         @click="editor.setActiveSidebarRight(editor.sidebarRight === 'fonts' ? null : 'fonts')"
       >
-        <Ligature :size="15" class="shrink-0 mr-[5px]" />
         <span class="text-start text-ellipsis whitespace-nowrap overflow-hidden w-20">{{ active.fontFamily || 'Inter' }}</span>
         <ChevronDown :size="15" class="ml-auto shrink-0" />
       </el-button>
       <div class="relative" style="background-color: var(--el-fill-color-light); border-radius: 20px; --el-border-color: transparent; --el-border-radius-base: 20px;">
         <el-input-number 
-          class="!h-8 !w-28 text-xs stepper-hidden"
+          class="!h-8 !w-25 text-xs stepper-hidden"
           type="number" :controls="false" style="--el-input-bg-color: transparent"
           v-model="fontSize">
           <template #suffix>
@@ -181,9 +180,7 @@ const textAlignOptions = [
           </template>
         </el-input-number>
         <el-dropdown class="!absolute right-1.5 top-1/2 -translate-y-1/2" @command="(value) => fontSize = value">
-          <el-button size="small" plain circle style="--el-button-bg-color: transparent">
-            <ChevronDown :size="14" class="text-foreground" />
-          </el-button>
+          <el-button size="small" :icon="ChevronDown" plain circle style="--el-button-bg-color: transparent" />
           <template #dropdown>
             <el-dropdown-menu class="min-w-24 max-h-64 overflow-y-auto">
               <el-dropdown-item v-for="size in fontSizes" :key="size" class="text-xs pl-2.5" :command="size">
@@ -196,14 +193,11 @@ const textAlignOptions = [
     </div>
     <el-divider direction="vertical" class="h-8" />
     <el-button-group class="flex">
-      <Toggle v-model="fontWeight" text bg round class="!h-8" size="small" @toggle="value => fontWeight = value">
-        <Bold :size="15" />
+      <Toggle v-model="fontWeight" :icon="Bold" text bg round class="!h-8 !w-8" size="small" @toggle="value => fontWeight = value">
       </Toggle>
-      <Toggle v-model="fontStyle" text bg round class="!h-8" size="small" @toggle="value => fontStyle = value">
-        <Italic :size="15" />
+      <Toggle v-model="fontStyle" :icon="Italic" text bg round class="!h-8 !w-8" size="small" @toggle="value => fontStyle = value">
       </Toggle>
-      <Toggle v-model="underline" text bg round class="!h-8" size="small" @toggle="value => underline = value">
-        <Underline :size="15" />
+      <Toggle v-model="underline" :icon="Underline" text bg round class="!h-8 !w-8" size="small" @toggle="value => underline = value">
       </Toggle>
     </el-button-group>
     <el-divider direction="vertical" class="h-8" />
@@ -216,10 +210,10 @@ const textAlignOptions = [
     </el-segmented>
     <el-divider direction="vertical" class="h-8" />
     <el-button-group class="flex">
-      <Toggle :modelValue="textTransform == 'uppercase'" text bg round class="!h-8" size="small" @toggle="value => textTransform = value ? 'uppercase' : ''">
+      <Toggle :modelValue="textTransform == 'uppercase'" text bg round class="!h-8 !w-10" size="small" @toggle="value => textTransform = value ? 'uppercase' : ''">
         <span>ABC</span>
       </Toggle>
-      <Toggle :modelValue="textTransform == 'lowercase'" text bg round class="!h-8" size="small" @toggle="value => textTransform = value ? 'lowercase' : ''">
+      <Toggle :modelValue="textTransform == 'lowercase'" text bg round class="!h-8 !w-10" size="small" @toggle="value => textTransform = value ? 'lowercase' : ''">
         <span>abc</span>
       </Toggle>
     </el-button-group>
@@ -227,9 +221,7 @@ const textAlignOptions = [
     <div class="flex items-center">
       <el-popover placement="bottom" trigger="click" width="200px">
         <template #reference>
-          <el-button type="primary" text bg round aria-label="letter-spacing" class="data-[state=open]:bg-card">
-            <WholeWord :size="15" />
-          </el-button>
+          <el-button :icon="WholeWord" text bg round aria-label="letter-spacing" class="px-2.5" />
         </template>
         <Label class="text-xs font-medium">Letter Spacing</Label>
         <div class="flex items-center justify-between gap-4">
@@ -238,9 +230,7 @@ const textAlignOptions = [
       </el-popover>
       <el-popover placement="bottom" trigger="click" width="200px">
         <template #reference>
-          <el-button type="primary" text bg round aria-label="line-height" class="data-[state=open]:bg-card">
-            <ArrowDownZA :size="15" />
-          </el-button>
+          <el-button :icon="ArrowDownZA" text bg round aria-label="line-height" class="px-2.5" />
         </template>
         <Label class="text-xs font-medium">Line Height</Label>
         <div class="flex items-center justify-between gap-4">

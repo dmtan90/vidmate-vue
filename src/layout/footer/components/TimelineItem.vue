@@ -29,28 +29,60 @@ const backgroundURL = ref("");
 const SEEK_TIME_WIDTH = 42;
 const HANDLE_WIDTH = 16;
 const HANDLE_HEIGHT = 40;
+const MIN_WIDTH = HANDLE_WIDTH*2;
 
-const offset = ref(0);
-const duration = ref(0);
-const width = ref(0);
-const backgroundWidth = ref(0);
+// const offset = ref(0);
+// const duration = ref(0);
+// const width = ref(0);
+// const backgroundWidth = ref(0);
 // const disabled = ref(false);
+const timelineMs = computed(() => timeline.value?.duration ?? 5000);
 const disabled = computed(() => timeline.value?.playing || animations.value?.previewing);
-// const style = reactive({
-//   backgroundImage: `url(${backgroundURL.value})`,
-//   backgroundSize: `${backgroundWidth.value}px 40px`,
+const baseId = computed(() => props.element?.id ?? props.element?.name ?? "");
+const offsetMs = computed(() => props.element?.meta?.offset ?? props.element?.offset*1000 ?? 0);
+const durationMs = computed(() => props.element?.meta?.duration ?? props.element?.timeline*1000 ?? 3000);
+const offsetInSecond = computed(() => (offsetMs.value / 1000) * SEEK_TIME_WIDTH);
+const widthInSecond = computed(() => (durationMs.value / 1000) * SEEK_TIME_WIDTH);
+const backgroundWidth = computed(() => props.type == "audio" ? (props.element.timeline * SEEK_TIME_WIDTH) : (HANDLE_HEIGHT * (props.element.width! / props.element.height!)));
+const timelineInSecond = computed(() => (timelineMs.value / 1000)*SEEK_TIME_WIDTH);
+// const offsetInSecond = ref(0);
+// const widthInSecond = ref(100);
+// const offsetInSecond = computed({
+//   get(){
+//     return (offsetMs.value / 1000) * SEEK_TIME_WIDTH;
+//   },
+
+//   set(value){
+//     console.log("offsetInSecond", value);
+//   }
 // });
-const style = computed(() => {
+
+// const widthInSecond = computed({
+//   get(){
+//     return (durationMs.value / 1000) * SEEK_TIME_WIDTH;
+//   },
+
+//   set(value){
+//     console.log("widthInSecond", value);
+//   }
+// });
+
+const trackStyle = computed(() => {
   return {
     backgroundImage: `url(${backgroundURL.value})`,
-    backgroundSize: `${backgroundWidth.value}px 40px`,
+    backgroundSize: `${backgroundWidth.value}px ${HANDLE_HEIGHT}px`,
   }
 });
 const isSelected = ref(false);
-const trackWidth = ref(0);
+// const trackWidth = ref(0);
+// const offsetInSecond = ref(0);
+// const widthInSecond = ref(0);
+// watch([offsetMs, durationMs], (values) => {
+//   console.log(values);
+// });
 
 const drawWaveformFromAudio = debounce((audio: any) => {
-  drawWaveformFromAudioBuffer(audio.buffer, 40, width.value, audio.trim, audio.timeline).then((blob) => {
+  drawWaveformFromAudioBuffer(audio.buffer, HANDLE_HEIGHT, widthInSecond.value, audio.trim, audio.timeline).then((blob) => {
     backgroundURL.value = URL.createObjectURL(blob);
   });
 }, 1000);
@@ -74,24 +106,32 @@ const computeSelected = () => {
   if (!active.value){
     isActive = false;
   }
-  else{
-    if (FabricUtils.isActiveSelection(active.value)){
-      isActive = active.value?.objects?.some((object) => object.name === props.element.name)  
-    }
-    else {
-      isActive = active.value?.name === props.element.name;
-    };
+  else if(FabricUtils.isActiveSelection(active.value)){
+    isActive = active.value?.objects?.some((object) => object.name === props.element.name)  
   }
+  else if(props.type == "audio"){
+    isActive = active.value?.id === props.element.id;
+  }
+  else{
+    isActive = active.value?.name === props.element.name;
+  };
   isSelected.value = isActive;
 };
 
 const computeStyle = () => {
-  offset.value = (props.element.meta!.offset / 1000) * SEEK_TIME_WIDTH;
-  width.value = ((props.element.meta!.duration / 1000) * SEEK_TIME_WIDTH) ?? 10;
+  // offsetInSecond.value = (offsetMs.value / 1000) * SEEK_TIME_WIDTH;
+  // widthInSecond.value = (durationMs.value / 1000) * SEEK_TIME_WIDTH;
+  // console.log("computeStyle", offset, width, props);
   // backgroundWidth.value = 40 * (props.element.width! / props.element.height!) + 10;
-  backgroundWidth.value = 40 * (props.element.width! / props.element.height!);
-  const durationInSeconds = timeline.value?.duration / 1000;
-  trackWidth.value = durationInSeconds * SEEK_TIME_WIDTH;
+  // if(props.type == "audio"){
+  //   backgroundWidth.value = props.element.timeline * SEEK_TIME_WIDTH;
+  // }
+  // else{
+  //   backgroundWidth.value = 40 * (props.element.width! / props.element.height!);  
+  // }
+  
+  // const durationInSeconds = timelineMs.value / 1000;
+  // trackWidth.value = durationInSeconds * SEEK_TIME_WIDTH;
 };
 
 const computeUpdate = () => {
@@ -107,9 +147,9 @@ const render = () => {
   }
 
   computeUpdate();
-  if(element.type == "audio"){
-    const _audio = audio.value?.get(element.name);
-    console.log("render", _audio);
+  if(props.type == "audio"){
+    const _audio = audio.value?.get(baseId.value);
+    // console.log("render", _audio);
     if(_audio){
       drawWaveformFromAudio(_audio);  
     }
@@ -119,7 +159,11 @@ const render = () => {
   }
 }
 
-watch(() => props.element, (newElement) => {
+// watch(() => props.element, (newElement) => {
+//   render();
+// }, { immediate: true });
+
+watch(props, (newElement) => {
   render();
 }, { immediate: true });
 
@@ -146,104 +190,143 @@ onUnmounted(() => {
 });
 
 const handleDragTrack = (x: number, y: number) => {
+  console.log("handleDragTrack", x, y);
   if(y < 0){
     return false;
   }
 
   if (disabled.value || x < 0) return false;
   const newOffset = Math.floor((x / SEEK_TIME_WIDTH) * 1000);
-  const object = instance.value!.getItemByName(props.element.name);
-  if (object && newOffset + object.meta.duration <= timeline.value?.duration) {
-    if(props.type == "audio"){
-      audio.value?.update(props.element.name, { offset: newOffset/1000 });
+  
+  if(props.type == "audio"){
+    const _audio = audio.value!.get(baseId.value);
+    if(_audio){
+      audio.value?.update(baseId.value, { offset: newOffset/1000 });
+      return true;
     }
-    else{
-      canvas.value.onChangeObjectTimelineProperty(object, "offset", newOffset);  
-    }
-    return true;
-  }
-  return false;
-};
-
-const handleDragLeftBar = (value: number) => {
-  if (disabled.value || value < 0) return false;
-  const newOffset = Math.floor((value / SEEK_TIME_WIDTH) * 1000);
-  const duration = props.element.meta!.duration + props.element.meta!.offset - newOffset;
-  const object = instance.value!.getItemByName(props.element.name);
-  if (object) {
-    if(props.type == "audio"){
-      audio.value?.update(object.name, { offset: newOffset/1000, timeline: duration/1000 });
-    }
-    else{
-      canvas.value.onChangeObjectTimelineProperty(object, "offset", newOffset);
-      canvas.value.onChangeObjectTimelineProperty(object, "duration", duration);  
-    }
-    return true;
-  }
-  return false;
-};
-
-const handleDragRightBar = (value: number) => {
-  if (disabled.value) return false;
-  const newDuration = Math.floor((value / SEEK_TIME_WIDTH) * 1000) - props.element.meta!.offset;
-  const object = instance.value!.getItemByName(props.element.name);
-  if (object && object.meta.offset + newDuration <= timeline.value?.duration) {
-    if(props.type == "audio"){
-      audio.value?.update(object.name, { timeline: newDuration/1000 });
-    }
-    else{
-      canvas.value.onChangeObjectTimelineProperty(object, "duration", newDuration);  
-    }
-    return true;
-  }
-  return false;
-};
-
-const handleResizeTrack = (handle, x, y, width, height) => {
-  if(handle == "ml"){
-    return handleDragLeftBar(x);
-  }
-  else if(handle == "mr"){
-    return handleDragRightBar(x + width);
   }
   else{
-    return false;
+    const object = instance.value!.getItemByName(props.element.name);
+    if (object) {
+      canvas.value.onChangeObjectTimelineProperty(object, "offset", newOffset);
+      return true;
+    }
   }
+  
+  return false;
+};
+
+const handleResizeTrack = (x: number, y: number, width: number, height: number) => {
+  let status = handleDragTrack(x, y);
+  if(status){
+    status = handleDragRightBar(width);
+  }
+  return status;
+};
+
+// const handleDragLeftBar = (value: number) => {
+//   console.log("handleDragLeftBar", value);
+//   if (disabled.value || value < 0) return false;
+//   const newOffset = Math.floor((value / SEEK_TIME_WIDTH) * 1000);
+//   const duration = durationMs.value + offsetMs.value - newOffset;
+//   if(props.type == "audio"){
+//     const _audio = audio.value!.get(baseId.value);
+//     if(_audio){
+//       audio.value?.update(baseId.value, { offset: newOffset/1000, timeline: duration/1000 });
+//       return true;
+//     }
+//   }
+//   else{
+//     const object = instance.value!.getItemByName(baseId.value);
+//     if(object){
+//       canvas.value.onChangeObjectTimelineProperty(object, "offset", newOffset);
+//       canvas.value.onChangeObjectTimelineProperty(object, "duration", duration); 
+//       return true;
+//     }
+//   }
+//   return false;
+// };
+
+const handleDragRightBar = (value: number) => {
+  console.log("handleDragRightBar", value);
+  if (disabled.value) return false;
+  const newDuration = Math.floor((value / SEEK_TIME_WIDTH) * 1000);// - offsetMs.value;
+  if(props.type == "audio"){
+    const _audio = audio.value!.get(baseId.value);
+    if(_audio){
+      audio.value?.update(baseId.value, { timeline: newDuration/1000 });
+      return true;
+    }
+  }
+  else{
+    const object = instance.value!.getItemByName(baseId.value);
+    if (object) {
+      canvas.value.onChangeObjectTimelineProperty(object, "duration", newDuration);
+      return true;
+    }
+  }
+  
+  return false;
+};
+
+// const handleResizeTrack = (handle, x, y, width, height) => {
+//   let status = false;
+//   if(handle == "ml"){
+//     status = handleDragLeftBar(x);
+//   }
+//   else if(handle == "mr"){
+//     status = handleDragRightBar(x + width);
+//   }
+
+//   if(!status){
+//     return false;
+//   }
+// };
+
+const dragStop = (x: number, y: number) => {
+  console.log("dragStop", x, y);
+  return handleDragTrack(x, y);
+};
+
+const resizeStop = (x: number, y: number, width: number, height: number) => {
+  console.log("resizeStop", x, y, width, height);
+  return handleResizeTrack(x, y, width, height);
 };
 
 </script>
 
 <template>
   <div class="h-10 overflow-visible shrink-0 relative">
-    <div class="parent-draggable" :style="{ width: `${trackWidth}px`, height: `${HANDLE_HEIGHT}px`, position: 'relative' }">
+    <div class="parent-draggable" :style="{ width: `${timelineInSecond}px`, height: `${HANDLE_HEIGHT}px`, position: 'relative' }">
       <VueDraggable
         axis="x"
-        :x="offset"
-        :y="0"
-        :w="width"
+        :parent="true"
+        :x="offsetInSecond"
+        :w="widthInSecond"
         :h="HANDLE_HEIGHT"
-        :onDrag="handleDragTrack"
-        :onResize="handleResizeTrack"
+        :min-width="MIN_WIDTH"
         :handles="['ml', 'mr']"
         :active="isSelected"
         :preventDeactivation="true"
+        @drag-stop="dragStop"
+        @resize-stop="resizeStop"
       >
         <template #ml>
           <button v-if="isSelected" class="flex items-center justify-center bg-primary absolute top-0 h-full z-10 rounded-l-lg cursor-ew-resize" :style="{ width: `${HANDLE_WIDTH}px` }">
-            <Minus v-if="!Math.round(props.element.meta!.offset)" :size="15" class="text-white rotate-90" :stroke-width="2.5" />
+            <Minus v-if="!Math.round(offsetMs)" :size="15" class="text-white rotate-90" :stroke-width="2.5" />
             <ChevronLeft v-else :size="15" class="text-white" :stroke-width="2.5" />
           </button>
           <span v-else></span>
         </template>
-        <button :class="cn('relative h-full w-full z-0 border-3 rounded-lg overflow-hidden cursor-grab active:cursor-grabbing', isSelected ? 'border-primary' : 'border-gray-400')" :style="style">
-          <span :class="cn('absolute top-1 bg-foreground/50 text-card rounded-sm backdrop-blur-sm px-2 py-1 flex items-center gap-2.5 capitalize', isSelected ? 'left-5' : 'left-1')">
-            <span class="text-xxs">{{ formatMediaDuration(props.element.meta!.duration) }}</span>
+        <button :class="cn('track relative h-full w-full z-0 border-3 rounded-lg overflow-hidden cursor-grab active:cursor-grabbing hover:visible-handles', isSelected ? 'border-primary' : 'border-gray-400')" :style="trackStyle">
+          <span :class="cn('absolute top-1 bg-foreground/50 text-card rounded-sm backdrop-blur-sm px-2 py-1 flex items-center gap-1.5 capitalize', isSelected ? 'left-5' : 'left-1')">
             <ElementDescription :name="props.element.name" :type="props.type" />
+            <span class="text-xxs">{{ formatMediaDuration(durationMs, false) }}</span>
           </span>
         </button>
         <template #mr>
           <button v-if="isSelected" class="inline-flex items-center justify-center bg-primary absolute top-0 h-full z-10 rounded-r-lg cursor-ew-resize" :style="{ width: `${HANDLE_WIDTH}px`, right: '0px' }">
-            <Minus v-if="props.element.meta!.duration + props.element.meta!.offset >= canvas.timeline.duration" :size="15" class="text-white rotate-90" :stroke-width="2.5" />
+            <Minus v-if="durationMs + offsetMs >= canvas.timeline.duration" :size="15" class="text-white rotate-90" :stroke-width="2.5" />
             <ChevronRight v-else :size="15" class="text-white" :stroke-width="2.5" />
           </button>
           <span v-else></span>
@@ -252,3 +335,31 @@ const handleResizeTrack = (handle, x, y, width, height) => {
     </div>
   </div>
 </template>
+
+<style>
+.parent-draggable {
+  .vdr:has(.track) {
+    .handle {
+      button {
+        width: 5px !important;
+      }
+    }
+  }
+
+  .vdr:has(.border-primary:hover) {
+    .handle {
+      button {
+        width: 16px !important;
+      }
+    }
+  }
+
+  .vdr:has(.handle:hover) {
+    .handle {
+      button {
+        width: 16px !important;
+      }
+    }
+  }
+}
+</style>

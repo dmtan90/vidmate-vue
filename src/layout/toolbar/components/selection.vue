@@ -6,8 +6,7 @@ import { ElButton } from 'element-plus';
 
 <template>
   <div class="flex items-center h-full w-full overflow-x-scroll scrollbar-hidden">
-    <el-button plain class="gap-1.5">
-      <Blend :size="15" />
+    <el-button :icon="Blend" plain class="px-2.5">
       <span>Combine</span>
     </el-button>
   </div>

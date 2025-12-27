@@ -162,11 +162,13 @@ export class CanvasWorkspace {
     const center = this.canvas.getCenter();
     this.canvas.zoomToPoint(createInstance(fabric.Point, center.left, center.top), this.zoom);
     this.viewportTransform = [...this.canvas.viewportTransform!];
+    this.canvas.requestRenderAll();
   }
 
   changeFill(fill: string) {
     this.fill = fill;
     this.artboard.set({ fill });
+    this.canvas.requestRenderAll();
   }
 
   destroy() {

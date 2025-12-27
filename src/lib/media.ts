@@ -119,11 +119,13 @@ export async function extractAudioWaveformFromAudioFile(file: File) {
   });
 }
 
-export async function drawWaveformFromAudioBuffer(buffer: AudioBuffer, height?: number, width?: number, from?: number, to?: number) {
+export async function drawWaveformFromAudioBuffer(buffer: AudioBuffer, height?: number, width?: number, from?: number, to?: number, skip?: number = 3) {
   return createInstance(Promise<Blob>, (resolve, reject) => {
     if(!buffer){
       return reject();
     }
+
+    // console.log("drawWaveformFromAudioBuffer", width, height);
     const sampleRate = buffer.sampleRate;
     const fromTime = clamp(from || 0, 0, buffer.duration);
     const toTime = clamp(to || buffer.duration, 0, buffer.duration);
@@ -133,19 +135,35 @@ export async function drawWaveformFromAudioBuffer(buffer: AudioBuffer, height?: 
     const raw = buffer.getChannelData(0).subarray(startSample, endSample);
 
     const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d")!;
+    const ctx = canvas.getContext("2d")!;
     canvas.height = height || 256;
     canvas.width = width || 256;
 
     const step = Math.ceil(raw.length / canvas.width);
     const amp = canvas.height / 2;
+    
+    // Set fill style and stroke style
+    ctx.fillStyle = '#6A24FF';
+    ctx.strokeStyle = '#6A24FF';
+    ctx.lineWidth = 1;
+    const borderRadius = 1; // Radius for the rounded corners
+
+    // Begin drawing the path
+    ctx.beginPath();
 
     for (let i = 0; i < canvas.width; i++) {
       const min = 1.0 - Math.max(...raw.subarray(i * step, (i + 1) * step));
       const max = 1.0 - Math.min(...raw.subarray(i * step, (i + 1) * step));
-      context.fillStyle = "#85B2E7";
-      context.fillRect(i, min * amp, 1, (max - min) * amp);
+      // ctx.fillStyle = "#6A24FF";
+      // ctx.fillRect(i, min * amp, 1, (max - min) * amp);
+      // Add the rounded rectangle path
+      ctx.roundRect(i, min * amp, 1, (max - min) * amp, borderRadius);
+      i += skip;
     }
+
+    // Fill and stroke the rounded rectangle
+    ctx.fill();
+    ctx.stroke();
 
     canvas.toBlob((blob) => {
       if (!blob) return reject();

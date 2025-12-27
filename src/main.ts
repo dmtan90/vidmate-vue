@@ -10,6 +10,7 @@ import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import "./styles/global.css";
+import "./styles/element-plus.css";
 import { queryClient } from './config/queryClient';
 
 import './fabric/initialize';
@@ -29,13 +30,6 @@ app.use(ElementPlus);
 // import vdr from 'vue-draggable-resizable-gorkys-vue3';
 // import 'vue-draggable-resizable-gorkys-vue3/dist/VueDraggableResizable.css';
 // app.component('vdr', vdr);
-
-import Vue3DraggableResizable from 'vue3-draggable-resizable';
-//default styles
-// import 'vue3-draggable-resizable/dist/Vue3DraggableResizable.css';
-// import { DraggableContainer } from 'vue3-draggable-resizable';
-app.use(Vue3DraggableResizable);
-// app.use(DraggableContainer);
 
 import { DraggablePlugin } from '@braks/revue-draggable';
 // Use as Plugin (registers directives and components)

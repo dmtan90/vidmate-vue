@@ -40,14 +40,14 @@ const onAddLine = (points: number[], name: string) => {
 };
 
 const onAddGiphyVideo = (source: string, thumbnail: string) => {
-  if (editor.canvas.replacer.active?.type === "video") {
+  if (editor.canvas.replacer.active?.type === "gif") {
     const promise = editor.canvas.replacer.replace(source, true);
-    toast.promise(promise, { loading: "The video is being replaced...", success: "The video has been replaced", error: "Ran into an error while replacing the video" });
+    toast.promise(promise, { loading: "The gif is being replaced...", success: "The gif has been replaced", error: "Ran into an error while replacing the gif" });
   } else if (!thumbnail || !isImageLoaded(thumbnail)) {
-    const promise = editor.canvas.onAddVideoFromSource(source);
-    toast.promise(promise, { loading: "The video asset is being loaded...", success: "The video asset has been added to artboard", error: "Ran into an error adding the video asset" });
+    const promise = editor.canvas.onAddGifFromSource(source);
+    toast.promise(promise, { loading: "The gif asset is being loaded...", success: "The gif asset has been added to artboard", error: "Ran into an error adding the gif asset" });
   } else {
-    toast.promise(editor.canvas.onAddVideoFromThumbnail(source, thumbnail), { error: "Ran into an error adding the video asset" });
+    toast.promise(editor.canvas.onAddGifFromThumbnail(source, thumbnail), { error: "Ran into an error adding the gif asset" });
   }
 };
 

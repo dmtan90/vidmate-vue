@@ -37,8 +37,17 @@ export class FabricAudio extends fabric.Object {
     super.initialize(options);
     this.createAudioVisual();
     this.createAudioVisualRenderer();
-    this.set({ left: options.left ?? 0, top: options.top ?? 0, trimStart: options.trimStart ?? 0, trimEnd: options.trimEnd ?? 0, objectCaching: false, src: options.src ?? element.src });
+    this.set({ 
+      left: options.left ?? 0, 
+      top: options.top ?? 0, 
+      trimStart: options.trimStart ?? 0, 
+      trimEnd: options.trimEnd ?? 0, 
+      objectCaching: false, 
+      src: options.src ?? element.src, 
+      visible: options.visible || false 
+    });
     // this.initAudioVisual();
+    console.log(this, options);
     this.on("added", () => fabric.util.requestAnimFrame(this.update.bind(this)));
     this.on("modified", this.update.bind(this));
   }
@@ -146,7 +155,7 @@ export class FabricAudio extends fabric.Object {
     return value;
   }
 
-  public duration(trim?: boolean) {
+  public _duration(trim?: boolean) {
     // console.log("duration", trim);
     const element = this.audioElement as HTMLAudioElement;
     return element ? (trim ? element.duration - this.trimStart - this.trimEnd : element.duration) : 0;
@@ -175,7 +184,7 @@ export class FabricAudio extends fabric.Object {
   public async seek(_seconds: number) {
     const element = this.audioElement as HTMLAudioElement;
     const seconds = _seconds + this.trimStart;
-    element.currentTime = clamp(seconds, 0, this.duration(true));
+    element.currentTime = clamp(seconds, 0, this._duration(true));
     await waitUntilEvent(element, "seeked");
   }
 
@@ -293,9 +302,15 @@ export class FabricAudio extends fabric.Object {
   }
 
   public _render(ctx: CanvasRenderingContext2D) {
+    console.log("_render");
     if (!this.audioVisual) return;
-    this.renderAudioVisual();
-    ctx.drawImage(this.__renderer, -this.width! / 2, -this.height! / 2, this.width!, this.height!);
+    if(this.visible){
+      this.renderAudioVisual();
+      ctx.drawImage(this.__renderer, -this.width! / 2, -this.height! / 2, this.width!, this.height!);
+    }
+    else{
+      ctx.clearRect(0, 0, this.width, this.height);
+    }
   }
 
   /**

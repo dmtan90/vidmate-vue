@@ -54,7 +54,7 @@ const computeToolbar = () => {
     } else if (type) {
       template = type;
     }
-    console.log(template);
+    // console.log("computeToolbar", template);
     Toolbar.value = template && toolbarComponentMap[template] ? shallowRef(toolbarComponentMap[template]) : null;
   }
   else{
@@ -64,7 +64,7 @@ const computeToolbar = () => {
 // const cropperActive = computed(() => canvasStore.cropperActive);
 // const trimmerActive = computed(() => canvasStore.trimmerActive);
 watch([selectionActive, cropperActive, trimmerActive], (value) => {
-  // console.log("selectionActive", value);
+  // console.log("update Toolbar", value);
   computeToolbar();
 });
 

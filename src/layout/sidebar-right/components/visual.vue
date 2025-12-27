@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
-import { PreviewOpen as Eye, PreviewClose as EyeOff, ColorFilter as Pipette, Close as X } from '@icon-park/vue-next';
+import { PreviewOpen as Eye, PreviewCloseOne as EyeOff, ColorFilter as Pipette, Close as X } from '@icon-park/vue-next';
 import { toast } from 'vue-sonner';
 import { ChromePicker, ColorResult, tinycolor } from 'vue-color';
 import { useEditorStore } from '@/store/editor';

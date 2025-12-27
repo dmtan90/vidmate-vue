@@ -9,40 +9,41 @@ import { storeToRefs } from 'pinia';
 
 const editor = useEditorStore();
 const canvasStore = useCanvasStore();
-const { canvas, cropperActive: active, instance } = storeToRefs(canvasStore);
+const { canvas, cropperActive, selectionActive, instance } = storeToRefs(canvasStore);
 
 const handleCropEnd = () => {
+  console.log("handleCropEnd");
   instance.value.discardActiveObject();
-  if (active.value) instance.value.setActiveObject(active.value);
+  if (selectionActive.value) instance.value.setActiveObject(selectionActive.value);
+  cropperActive.value = null;
 };
 
 const handleFlipImage = (property: "flipX" | "flipY") => {
-  canvas.value.onChangeImageProperty(active.value!, property, !active![property]);
+  canvas.value.onChangeImageProperty(cropperActive.value!, property, !cropperActive![property]);
 };
 
 </script>
 
 <template>
   <div class="flex items-center h-full w-full overflow-x-scroll scrollbar-hidden">
-    <el-button plain class="gap-1.5 pl-2.5 bg-primary hover:bg-primary/90" @click="handleCropEnd">
-      <Check :size="15" />
+    <el-button :icon="Check" plain round class="px-2.5" @click="handleCropEnd">
       <span>Done</span>
     </el-button>
     <el-divider direction="vertical" class="h-8" />
     <div class="flex items-center gap-2.5">
       <el-tooltip content="Mirror image horizontally" placement="bottom">
-        <el-button plain @click="handleFlipImage('flipX')">
-          <FlipHorizontal2 :size="15" />
+        <el-button plain circle @click="handleFlipImage('flipX')">
+          <FlipHorizontally :size="15" />
         </el-button>
       </el-tooltip>
       <el-tooltip content="Mirror image vertically" placement="bottom">
-        <el-button plain @click="handleFlipImage('flipY')">
-          <FlipVertical2 :size="15" />
+        <el-button plain circle @click="handleFlipImage('flipY')">
+          <FlipVertically :size="15" />
         </el-button>
       </el-tooltip>
     </div>
     <el-divider direction="vertical" class="h-8" />
-    <el-button plain class="gap-1.5">
+    <el-button plain round class="gap-1.5">
       <CornerUpLeft :size="15" />
       <span>Reset</span>
     </el-button>

@@ -18,7 +18,7 @@ const handleAlignToPage = (type: "left" | "center" | "right" | "top" | "middle" 
 <template>
   <div class="flex items-center gap-2.5">
     <el-dropdown>
-      <el-button plain class="gap-1.5">
+      <el-button plain class="px-2.5">
         <BoxSelect :size="15" :stroke-width="1.5" />
       </el-button>
       <template #dropdown>

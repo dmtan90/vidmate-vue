@@ -25,7 +25,11 @@ export const propertiesToInclude = [
   "visualType",
   "visualProps",
   "audioName",
-  "src"
+  "src",
+  "volume",
+  "muted",
+  "keepRatio",
+  "thumbnail"
 ];
 
 export const textLayoutProperties = ["textTransform"];
@@ -35,7 +39,7 @@ export const activityIndicator = "M21 12a9 9 0 1 1-6.219-8.56";
 export const defaultColor = "#FFFFFF";//text
 export const defaultFill = "#FFFFFF";//shape
 export const defaultStroke = "#FFFFFF";//shape
-export const defaultBackgroundColor = "#000000";//artboard
+export const defaultBackgroundColor = "#303030";//artboard
 
 export const defaultGradient = createInstance(fabric.Gradient, {
   type: "linear",

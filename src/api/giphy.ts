@@ -177,17 +177,17 @@ export async function GET_GIF(url: string) {
 			type: GiphyType.GIF,
 			id: `GIPHY_${gif.id}`,
 			details: {
-				src: gif.images.fixed_height.mp4, // Use mp4
-				width: parseInt(gif.images.fixed_height.width),
-				height: parseInt(gif.images.fixed_height.height),
-				size: parseInt(gif.images.fixed_height.mp4_size),
+				src: gif.images.original.url, // Use gif
+				width: parseInt(gif.images.original.width),
+				height: parseInt(gif.images.original.height),
+				size: parseInt(gif.images.original.size),
 				alt: gif.alt_text,
 			},
 			preview: gif.images.fixed_height_small.webp, // Use webp
 			metadata: {
 				GIPHY_id: gif.id,
 				title: gif.title,
-				original_url: gif.images.original.mp4,
+				original_url: gif.images.original.url,
 				source_post_url: gif.source_post_url
 			},
 		}));
@@ -266,17 +266,17 @@ export async function GET_STICKER(url: string) {
 			type: GiphyType.STICKER,
 			id: `GIPHY_${gif.id}`,
 			details: {
-				src: gif.images.fixed_height.mp4, // Use mp4
-				width: parseInt(gif.images.fixed_height.width),
-				height: parseInt(gif.images.fixed_height.height),
-				size: parseInt(gif.images.fixed_height.mp4_size),
+				src: gif.images.original.url, // Use gif
+				width: parseInt(gif.images.original.width),
+				height: parseInt(gif.images.original.height),
+				size: parseInt(gif.images.original.size),
 				alt: gif.alt_text,
 			},
 			preview: gif.images.fixed_height_small.webp, // Use webp
 			metadata: {
 				GIPHY_id: gif.id,
 				title: gif.title,
-				original_url: gif.images.original.mp4,
+				original_url: gif.images.original.url,
 				source_post_url: gif.source_post_url
 			},
 		}));
@@ -355,17 +355,17 @@ export async function GET_EMOJI(url: string) {
 			type: GiphyType.STICKER,
 			id: `GIPHY_${gif.id}`,
 			details: {
-				src: gif.images.fixed_height.mp4, // Use mp4
-				width: parseInt(gif.images.fixed_height.width),
-				height: parseInt(gif.images.fixed_height.height),
-				size: parseInt(gif.images.fixed_height.mp4_size),
+				src: gif.images.original.url, // Use gif
+				width: parseInt(gif.images.original.width),
+				height: parseInt(gif.images.original.height),
+				size: parseInt(gif.images.original.size),
 				alt: gif.alt_text,
 			},
 			preview: gif.images.fixed_height_small.webp, // Use webp
 			metadata: {
 				GIPHY_id: gif.id,
 				title: gif.title,
-				original_url: gif.images.original.mp4,
+				original_url: gif.images.original.url,
 				source_post_url: gif.source_post_url
 			},
 		}));

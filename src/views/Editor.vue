@@ -13,32 +13,18 @@
       <main class="flex-1 flex w-full h-[calc(100dvh-56px)]">
         <EditorSidebarLeft />
         <section class="flex-1 flex flex-col relative w-0 pb-16 sm:pb-0">
-          <AnimatePresence>
-            <Motion
-              :initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :exit="{ opacity: 0 }"
-              v-if="active">
-              <EditorToolbar/>
-            </Motion>
-          </AnimatePresence>
+          <EditorToolbar v-if="active"/>
           <div class="flex-1 relative overflow-hidden" id="workspace">
-            <template v-for="(page, index) in pages" :key="page.id + index" >
-              <EditorCanvas :page="index" />
+            <template v-for="(page, index) in pages" :key="page.id" >
+              <EditorCanvas :id="page.id" />
             </template>
             <EditorControls />
             <EditorRecorder />
             <Toaster rich-colors :position="position" :offset="24" :visible-toasts="6" />
           </div>
-          <AnimatePresence>
-            <Motion layout :style="{ height: timelineOpen ? '288px' : '64px' }" :transition="{ default: { ease: 'spring' }, layout: { duration: 0.3 } }">
-              <EditorFooter />
-            </Motion>
-          </AnimatePresence>
+          <EditorFooter />
         </section>
-        <AnimatePresence>
-          <Motion layout :style="{ width: sidebarRight ? '280px' : '0px' }" :transition="{ default: { ease: 'spring' }, layout: { duration: 0.3 } }">
-            <EditorSidebarRight />
-          </Motion>
-        </AnimatePresence>
+        <EditorSidebarRight />
       </main>
       <AIPromptModal />
       <EditorPreviewModal />
@@ -83,6 +69,10 @@ canvasStore.registerEvents();
 const { selectionActive: active } = storeToRefs(canvasStore);
 const isTablet = useIsTablet();
 useInitializeEditor();
+const pageSize = computed(() => pages.value?.length || 0);
+watch(pageSize, (value) => {
+  console.log("pageSize", value)
+})
 // const position = ref("bottom-right");
 
 const position = computed(() => (isTablet ? 'bottom-right' : 'top-center'));

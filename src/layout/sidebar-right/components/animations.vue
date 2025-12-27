@@ -5,11 +5,12 @@ import { useAnimationControls } from '@/layout/sidebar-right/hooks/use-animation
 import { useAnimationList } from '@/layout/sidebar-right/hooks/use-animations';
 import AnimationItem from './AnimationItem.vue';
 import AnimationControls from './AnimationControls.vue';
+import { Canvas } from "@/plugins/canvas";
 
 interface AnimationProps {
   animations: EditorAnimation[]
   type: 'in' | 'out' | 'scene'
-  selected: fabric.Object
+  selected: fabric.Object | Canvas
 }
 
 const props = defineProps<AnimationProps>()

@@ -16,7 +16,7 @@ export class CanvasAudio {
   private _gainEndOffset = 0;
   private _gainStartOffset = 2;
 
-  elements: EditorAudioElement[];
+  public elements: EditorAudioElement[];
 
   constructor(canvas: Canvas) {
     this._canvas = canvas;
@@ -103,7 +103,7 @@ export class CanvasAudio {
   }
 
   get(id: string) {
-    console.log("get", id, this.elements);
+    // console.log("get", id, this.elements);
     const index = this.elements.findIndex((audio) => audio.id === id);
     if (index === -1) return null;
 
@@ -117,6 +117,7 @@ export class CanvasAudio {
   }
 
   delete(id: string) {
+    console.log("delete", id);
     const index = this.elements.findIndex((audio) => audio.id === id);
     if (index === -1) return;
 
@@ -129,8 +130,8 @@ export class CanvasAudio {
       this._canvas.onDeleteObject(object);
     }
 
-    if (this.selection.active?.name === audio.id) this.selection.active = null;
-    if (this._canvas.trimmer.active?.object.name === audio.id) this._canvas.trimmer.active = null;
+    if (this.selection.active?.id === audio.id) this.selection.active = null;
+    if (this._canvas.trimmer.active?.object.id === audio.id) this._canvas.trimmer.active = null;
   }
 
   update(id: string, value: Partial<EditorAudioElement>) {
@@ -148,7 +149,7 @@ export class CanvasAudio {
     // if (this.selection) this.selection.active = Object.assign({ type: "audio" }, updated) as unknown as fabric.Object;
   }
 
-  async add(url: string, name: string, visual = true, _id?: string) {
+  async add(url: string, name: string, visual = false, _id?: string) {
     const response: Response = await fetch(url);
     const data: ArrayBuffer = await response.arrayBuffer();
     const buffer: AudioBuffer = await this.context.decodeAudioData(data);
@@ -194,6 +195,7 @@ export class CanvasAudio {
         toast.error(`Ran into an error initializing audio - ${audio.name}`, { id: audio.id });
       }
     }
+    console.log("initialize", this.elements, this._canvas);
   }
 
   async extract(videos: fabric.Video[], { ffmpeg, signal }: { ffmpeg: FFmpeg; signal?: AbortSignal }) {

@@ -2,7 +2,7 @@
 import { ref, watch, onMounted } from 'vue';
 import { Right as ArrowRight, Check } from '@icon-park/vue-next';
 import WebFont from 'webfontloader';
-import { ElButton } from 'element-plus';
+// import { ElButton } from 'element-plus';
 
 const props = defineProps<{ font: any; selected: boolean; onClick: () => void }>();
 

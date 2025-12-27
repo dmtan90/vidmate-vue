@@ -4,6 +4,7 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toBlobURL } from "@ffmpeg/util";
 import WebFont from "webfontloader";
 import { checkForAudioInVideo } from "@/lib/media";
+import { cloneDeep } from 'lodash'
 
 import { Canvas } from "./canvas";
 import { Prompt } from "./prompt";
@@ -16,6 +17,7 @@ import { FabricUtils } from "@/fabric/utils";
 import { propertiesToInclude } from "@/fabric/constants";
 import { type EditorAudioElement, EditorTemplate, EditorTemplatePage } from "@/types/editor";
 import { Adapter } from "./adapter";
+import { useEditorStore } from "@/store/editor"
 
 export type ExportMode = "video" | "both";
 export type EditorMode = "creator" | "adapter";
@@ -58,8 +60,12 @@ export class Editor {
   public frame?: string;
 
   public file: string;
-  public fps: string;
+  public fps: number;
   public codec: string;
+  public width: number;
+  public height: number;
+  public scale: number;
+  public format: string;
 
   public saving: boolean;
   public preview: boolean;
@@ -87,7 +93,11 @@ export class Editor {
         height: 1080
     };
 
-    this.pages = [createInstance(Canvas, this)];
+    const firstPage = createInstance(Canvas, this);
+    if(firstPage){
+      this.pages = [firstPage];
+    }
+    
     this.controller = markRaw(createInstance(AbortController));
 
     this.adapter = markRaw(createInstance(Adapter));
@@ -102,9 +112,13 @@ export class Editor {
     this.progress = { capture: 0, compile: 0 };
 
     this.file = "";
-    this.fps = "30";
-    this.codec = "H.264";
+    this.fps = 30;
+    this.codec = "MP4";
     this.exports = "both";
+    this.width = 1920;
+    this.height = 1080;
+    this.format = "mp4";
+    this.scale = 1;
 
     this.sidebarLeft = null;
     this.sidebarRight = null;
@@ -158,6 +172,16 @@ export class Editor {
     }
   }
 
+  getExportDuration(){
+    let offsetMs = 0;
+    for(let i = 0; i < this.pages.length; i++){
+      const canvas = this.pages[i];
+      const timeline = canvas.timeline;
+      offsetMs += timeline.duration;
+    }
+    return offsetMs;
+  }
+
   async exportAudio() : Promise<Blob> {
     if (this.exports === "video") return null;
     this.controller = createInstance(AbortController);
@@ -169,6 +193,16 @@ export class Editor {
 
       const audios = canvas.audio.elements.filter((audio) => !audio.muted && !!audio.volume);
       const videos = canvas.instance._objects.filter(FabricUtils.isVideoElement) as fabric.Video[];
+      // const visuals = canvas.instance._objects.filter(FabricUtils.isAudioElement) as fabric.Audio[];
+      // if(visuals && visuals.length > 0){
+      //   visuals.forEach(visual => {
+      //     audios.push(visual);
+      //   });
+      //   for(let i = 0; i < visuals.length; i++){
+      //     let audio = 
+      //   }
+      // }
+
       audios.forEach(audio => {
         if(audio){
           audio.offset += offsetMs/1000;
@@ -188,14 +222,14 @@ export class Editor {
       offsetMs += timeline.duration;
     }
 
-    // console.log(combined);
+    // console.log("exportAudio", combined);
     if (!combined.length) return null;
 
     const sampleRate = combined[0].buffer.sampleRate;
     // const duration = combined.reduce((duration, audio) => (audio.timeline + audio.offset > duration ? audio.timeline + audio.offset : duration), 0);
     // const length = Math.min(duration, offsetMs / 1000) * sampleRate;
     const length = (offsetMs / 1000) * sampleRate;
-    // console.log(combined, offsetMs, sampleRate, length);
+    // console.log("exportAudio", combined, offsetMs, sampleRate, length);
 
     const context = createInstance(OfflineAudioContext, 2, length, sampleRate);
     this.canvas.audio.record(combined, context);
@@ -206,7 +240,7 @@ export class Editor {
     this.controller.signal.throwIfAborted();
     this.controller.signal.removeEventListener("abort", handler);
     const blob = convertBufferToWaveBlob(buffer, buffer.length);
-
+    console.log("exportAudio", blob);
     return blob;
   }
 
@@ -214,8 +248,12 @@ export class Editor {
     this.blob = undefined;
     this.frame = undefined;
     this.onResetProgress();
+    const editor = useEditorStore();
+    // console.log(editor.dimension);
 
     try {
+      // const canvas = new OffscreenCanvas(this.width, this.height);
+      // this.recorder.initialize(canvas);
       this.onChangeExportStatus(ExportProgress.CaptureAudio);
       const audio: Blob = await this.exportAudio();
       this.controller = createInstance(AbortController);
@@ -224,7 +262,12 @@ export class Editor {
       const frames: Uint8Array[] = await this.recorder.capture(+this.fps, { signal: this.controller.signal, progress: this._progressEvent.bind(this) });
       this.recorder.stop();
       this.onChangeExportStatus(ExportProgress.CompileVideo);
-      const blob: Blob = await this.recorder.compile(frames, { ffmpeg: this.ffmpeg, codec: this.codec, fps: this.fps, signal: this.controller.signal, audio });
+      let nowMs = (new Date()).getTime();
+      let blob: Blob = await this.recorder.mediaBunnyCompile(frames, { width: this.width, height: this.height, scale: this.scale, fps: this.fps, format: this.format, duration: this.getExportDuration(), signal: this.controller.signal, progress: this._progressEvent.bind(this), audio });
+      console.log("Media Bunny cost:", (new Date()).getTime() - nowMs);
+      // nowMs = (new Date()).getTime();
+      // blob: Blob = await this.recorder.compile(frames, { ffmpeg: this.ffmpeg, codec: this.codec, fps: this.fps, signal: this.controller.signal, audio, progress: this._progressEvent.bind(this) });
+      // console.log("FFMPEG cost:", (new Date()).getTime() - nowMs);
       this.onChangeExportStatus(ExportProgress.Completed);
       this.blob = blob;
       return blob;
@@ -248,7 +291,22 @@ export class Editor {
     return templates;
   }
 
+  async exportPageTemplate(index: number) : Promise<EditorTemplatePage> {
+    // console.log("exportTemplate");
+    let template: EditorTemplatePage = null;
+    const page = this.pages[index];
+    if(page){
+      const thumbnail: string = await this.recorder.screenshot(page.instance);
+      const scene = JSON.stringify(page.instance.toDatalessJSON(propertiesToInclude));
+      const audios: Omit<EditorAudioElement, "buffer" | "source">[] = page.audio.elements.map(({ buffer, source, ...audio }) => audio);
+      const data = { fill: page.workspace.fill, height: page.workspace.height, width: page.workspace.width, audios: audios, scene: scene };
+      template = { thumbnail: thumbnail, data: data, id: page.id, name: page.name, duration: page.timeline.duration };
+    }
+    return template;
+  }
+
   loadTemplate(template: EditorTemplate, mode: "replace" | "reset") {
+    console.log("loadTemplate", template, mode);
     switch (mode) {
       case "reset":
         this.id = template.id;
@@ -289,7 +347,7 @@ export class Editor {
     this.codec = codec;
   }
 
-  onChangeExportFPS(fps: string) {
+  onChangeExportFPS(fps: number) {
     this.fps = fps;
   }
 
@@ -305,6 +363,22 @@ export class Editor {
     this.name = name;
   }
 
+  onChangeWidth(width: number) {
+    this.width = width;
+  }
+
+  onChangeHeight(height: number) {
+    this.height = height;
+  }
+
+  onChangeScale(scale: number) {
+    this.scale = scale;
+  }
+
+  onChangeFormat(format: string) {
+    this.format = format;
+  }
+
   setActiveSidebarLeft(sidebar: string | null) {
     this.sidebarLeft = sidebar;
   }
@@ -313,7 +387,19 @@ export class Editor {
     this.sidebarRight = sidebar;
   }
 
-  addPage(template?: EditorTemplate) {
+  getPageById(id: string){
+    let page = null;
+    for(let i = 0; i < this.pages.length; i++){
+      if(this.pages[i].id == id){
+        page = this.pages[i];
+        break;
+      }
+    }
+    // console.log("getPageById", id, page);
+    return page;
+  }
+
+  addPage(template?: EditorTemplatePage) {
     const canvas = createInstance(Canvas, this);
     if(template){
       canvas.template?.set(template);
@@ -325,36 +411,43 @@ export class Editor {
   deleteActivePage() {
     const length = this.pages.length;
     if (length > 1) {
-      this.pages[this.page].destroy();
-      this.pages.splice(this.page, 1);
+      const index = this.page;
       if (this.page >= length - 1) this.page = this.page - 1;
+      this.pages[index].destroy();
+      this.pages.splice(index, 1);
     }
   }
 
   deletePage(index: number) {
     const length = this.pages.length;
     if(index < length){
+      if(index <= this.page){
+        this.page = this.page - 1;
+      }
       this.pages[index].destroy();
       this.pages.splice(index, 1);
-      if (index >= length - 1) this.page = this.page - 1;
     }
   }
 
-  copyPage(index: number) {
+  async copyPage(index: number) {
     const length = this.pages.length;
     if(index < length){
-      // this.pages[index].destroy();
-
-      // this.pages.splice(index, 1);
-      // if (index >= length - 1) this.page = this.page - 1;
+      const template = await this.exportPageTemplate(index);
+      this.addPage(template);
     }
   }
 
   swapPage(oldIndex: number, newIndex: number) {
-    const tmp = this.pages[newIndex];
-    this.pages[newIndex] = this.pages[oldIndex];
-    this.pages[oldIndex] = tmp;
-    this.onChangeActivePage(newIndex);
+    const pages = [...this.pages];
+    [pages[oldIndex], pages[newIndex]] = [pages[newIndex], pages[oldIndex]];
+    this.pages = pages;
+    // const oldPage = cloneDeep(this.pages[oldIndex]);
+    // const newPage = cloneDeep(this.pages[newIndex]);
+    // this.pages[newIndex] = oldPage;
+    // this.pages[oldIndex] = newPage;
+    if(this.page == oldIndex){
+      this.onChangeActivePage(newIndex);
+    }
   }
 
   onChangeActivePage(index: number) {
@@ -405,10 +498,12 @@ export class Editor {
     this.status = status;
   }
 
-  resizeArtboards(dimension: { width: number; height: number }) {
+  resize(dimension: { width: number; height: number }, changeArtboards: boolean = false) {
     this.dimension = dimension;
-    this.pages.forEach(page => {
-      page.workspace.resizeArtboard(dimension);
-    });
+    if(changeArtboards){
+      this.pages.forEach(page => {
+        page.workspace?.resizeArtboard(dimension);
+      });  
+    }
   }
 }

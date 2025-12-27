@@ -3,6 +3,7 @@ import { FabricUtils } from "@/fabric/utils";
 import { createPromise } from "@/lib/utils";
 import { Canvas } from "@/plugins/canvas";
 import type { EditorTemplatePage } from "@/types/editor";
+import { defaultBackgroundColor } from "@/fabric/constants"
 
 export class CanvasTemplate {
   private _canvas: Canvas;
@@ -59,22 +60,57 @@ export class CanvasTemplate {
     this.canvas.clear();
     this.timeline.destroy();
 
-    this.workspace.changeFill(this.page!.data.file || "#CCCCCC");
+    this.workspace.changeFill(this.page!.data.fill || defaultBackgroundColor);
     this.workspace.resizeArtboard({ height: this.page!.data.height, width: this.page!.data.width });
 
     this.canvas.add(this.artboard);
     this.canvas.clipPath = this.artboard;
     const serialized = JSON.parse(this.page!.data.scene);
+    const templateSize = {
+      width: this.page!.data.width || 1080,
+      height: this.page!.data.height || 1080
+    }
+    
+    const canvasSize = {
+      width: this.workspace.width,
+      height: this.workspace.height
+    }
+
+    // FabricUtils.transformObjectsToMatchWorkspace(serialized.objects, templateSize, canvasSize);
+
+    for(let i = 0; i < serialized.objects.length; i++){
+      let object = serialized.objects[i]
+      if(!object.name){
+        object.name = FabricUtils.elementID(object.type ?? "object");
+      }
+
+      if(object.clipPath && !object.clipPath.name){
+        object.clipPath.name = FabricUtils.elementID(object.clipPath.type ?? "clipPath");
+      }
+    }
 
     return createPromise<void>((resolve) => {
       FabricUtils.applyFontsBeforeLoad(serialized.objects).then(() => {
         fabric.util.enlivenObjects(
           serialized.objects,
           (objects: fabric.Object[]) => {
+            // for(let i = 0; i < objects.length; i++){
+            //   let object = objects[i]
+            //   if(!object.name){
+            //     object.name = FabricUtils.elementID(object.type ?? "object");
+            //     console.log("object", object);
+            //   }
+
+            //   if(object.clipPath && !object.clipPath.name){
+            //     object.clipPath.name = FabricUtils.elementID(object.clipPath.type ?? "clipPath");
+            //     console.log("clipPath", object.clipPath);
+            //   }
+            // }
+
             FabricUtils.applyModificationsAfterLoad(objects, this.editor.adapter, this.editor.mode).then(() => {
               this.canvas.add(...objects);
-              this.workspace.changeFill(this.page!.data.fill || "#FFFFFF");
-              this.workspace.resizeArtboard({ height: this.page!.data.height || 1080, width: this.page!.data.width || 1080 });
+              // this.workspace.changeFill(this.page!.data.fill || defaultBackgroundColor);
+              // this.workspace.resizeArtboard({ height: this.page!.data.height || 1080, width: this.page!.data.width || 1080 });
 
               this.history.clear();
               this.timeline.initialize(this.page!.duration || 5000);
@@ -97,7 +133,11 @@ export class CanvasTemplate {
   }
 
   async load() {
-    console.log("Load template", this.page);
+    console.log("Load template", this.status, this.page);
+    if(this.status == "pending" || !this.page){
+      return;
+    }
+    
     return createPromise<void>((resolve, reject) => {
       this.status = "pending";
       if (!this.page) {
@@ -107,7 +147,7 @@ export class CanvasTemplate {
         this.audio.elements = [];
         this._canvas.elements = [];
 
-        this._canvas.id = this.page.id;
+        // this._canvas.id = this.page.id;
         this._canvas.name = this.page.name;
 
         this.cropper.active = null;

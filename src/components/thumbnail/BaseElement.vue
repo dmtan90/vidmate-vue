@@ -64,6 +64,9 @@ watch(props, (value) => {
 <style>
 .base-element-image {
   position: absolute;
+  g > * {
+    visibility: visible !important;
+  }
 }
 .rotate-wrapper {
   width: 100%;

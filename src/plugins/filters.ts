@@ -18,6 +18,19 @@ export class CanvasEffects {
     return false;
   }
 
+  removeImageFilters(image: fabric.Image) {
+    if (!image || !(image.type === "image" || image.type === "gif" || image.type === "video")) return;
+
+    image.effects!.name = null;
+    image.effects!.intensity = null;
+    image.filters = [];
+    image.adjustments = {};
+    image.effects!.end = null;
+    image.effects!.start = null;
+    image.applyFilters();
+    this.canvas.fire("object:modified", { target: image }).requestRenderAll();
+  }
+
   removeImageFilter(image: fabric.Image, name: string) {
     if (!image || !(image.type === "image" || image.type === "gif" || image.type === "video") || image.effects!.name !== name) return;
 
@@ -87,18 +100,48 @@ export class CanvasEffects {
     if (!image.adjustments![name]) image.adjustments![name] = {};
     const adjustment = image.adjustments![name];
 
-    if (adjustment.name === name && adjustment.intensity === intensity) return;
+    // if (adjustment.name === name && adjustment.intensity === intensity) return;
+    // if (adjustment.name === name && adjustment.intensity === intensity) return;
 
     adjustment.name = name;
     adjustment.intensity = intensity;
+    filter.intensity = intensity;
+    //for duotone and removecolor and blendmode
+    if(filter.mode){
+      adjustment.mode = filter.mode
+    }
 
-    if (adjustment.index >= 0) image.filters!.splice(adjustment.index, 1);
-    adjustment.index = image.filters!.length;
+    if(filter.color != undefined){
+      adjustment.color = filter.color
+    }
 
-    image.filters!.push(filter);
+    if(filter.alpha != undefined){
+      adjustment.alpha = filter.alpha ?? null;
+    }
+
+    if(filter.distance != undefined){
+      adjustment.distance = filter.distance
+    }
+
+    if(filter.subFilters != undefined){
+      adjustment.subFilters = filter.subFilters
+    }
+
+    if(adjustment.index == undefined || adjustment.index < 0){
+      // if (adjustment.index >= 0) image.filters!.splice(adjustment.index, 1);
+      adjustment.index = image.filters!.length;
+
+      image.filters!.push(filter);
+    }
+    else{
+      image.filters[adjustment.index] = filter;
+    }
+
     image.applyFilters();
     this.canvas.fire("object:modified", { target: image });
     this.canvas.requestRenderAll();
+
+    console.log("applyImageAdjustment", filter, adjustment);
   }
 
   applyAdjustmentToActiveImage(filter: fabric.IBaseFilter, name: string, intensity: number) {

@@ -1,11 +1,18 @@
 import { fabric } from "fabric";
-
+import { FabricUtils } from "@/fabric/utils";
 const _initialize = fabric.Object.prototype.initialize;
 const _render = fabric.Object.prototype.render;
 
 fabric.Object.prototype.initialize = function (options) {
+  // if(options?.type && options?.type == "rect"){
+  //   console.log("initialize", options);
+  // }
   _initialize.apply(this, [options]);
   this.blur = options?.blur;
+  this.centeredRotation = true;
+  // if(!this.name){
+  //   this.name = FabricUtils.elementID(options.type);
+  // }
   return this;
 };
 
@@ -14,6 +21,23 @@ fabric.Object.prototype.render = function (ctx) {
   if (!!this.blur) ctx.filter = `blur(${this.blur}px)`;
   _render.apply(this, [ctx]);
   ctx.restore();
+};
+
+fabric.Object.prototype.update = function () {
+  if (this.canvas) {
+    try{
+      const backend = fabric.filterBackend;
+      if (backend?.evictCachesForKey) {
+        backend.evictCachesForKey(this.cacheKey);
+        backend.evictCachesForKey(this.cacheKey + "_filtered");
+      }
+      this.applyFilters();
+      this.canvas.renderAll();
+      fabric.util.requestAnimFrame(this.update.bind(this));
+    }catch(error){
+      console.error(error);
+    }
+  }
 };
 
 // fabric.Object.prototype.toPNG = function () {

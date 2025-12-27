@@ -2,7 +2,7 @@
 import { ref, watch, onUnmounted } from 'vue';
 import { useEditorStore } from '@/store/editor';
 import { cn } from '@/lib/utils';
-import { ElButton } from 'element-plus';
+// import { ElButton } from 'element-plus';
 
 const props = defineProps<{ element: fabric.Object; className?: string }>();
 

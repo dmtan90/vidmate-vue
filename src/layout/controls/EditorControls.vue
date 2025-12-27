@@ -4,7 +4,7 @@ import { clamp } from 'lodash';
 import { Motion, AnimatePresence } from 'motion-v'
 import { Check, Copy, Peoples as GroupIcon, LinkOne as LinkIcon, 
   Write as PencilIcon, Transform as RepeatIcon, SendToBack as SendToBackIcon, 
-  MagicWand as SparklesIcon, Delete as Trash2Icon } from '@icon-park/vue-next';
+  MagicWand as SparklesIcon, Delete as Trash2Icon, FlipHorizontally, FlipVertically } from '@icon-park/vue-next';
 
 import { useEditorStore } from '@/store/editor';
 import { FabricUtils } from '@/fabric/utils';
@@ -168,23 +168,37 @@ const showControls = computed(() => {
             <el-dropdown-menu>
               <el-dropdown-item disabled class="text-xs">Move</el-dropdown-item>
               <el-dropdown-item
-                v-for="({ label, value }) in move"
+                v-for="({ label, value, icon }) in move"
                 :key="value"
                 @click="canvas.alignment.changeActiveObjectLayer(value)"
                 class="text-xs"
+                :icon="icon"
               >
                 {{ label }}
               </el-dropdown-item>
               <el-divider />
               <el-dropdown-item disabled class="text-xs">Align to Page</el-dropdown-item>
               <el-dropdown-item
-                v-for="({ label, value }) in align"
+                v-for="({ label, value, icon }) in align"
                 :key="value"
                 @click="canvas.alignment.alignActiveObjecToPage(value)"
                 class="text-xs"
+                :icon="icon"
               >
                 {{ label }}
               </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-dropdown max-height="200px">
+          <el-button text circle class="h-7 w-7">
+            <FlipHorizontally :size="14" />
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item disabled class="text-xs">Flip</el-dropdown-item>
+              <el-dropdown-item class="text-xs" :icon="FlipHorizontally">Horizontally</el-dropdown-item>
+              <el-dropdown-item class="text-xs" :icon="FlipVertically">Vertically</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>

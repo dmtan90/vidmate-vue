@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { PreviewOpen as Eye, PreviewClose as EyeOff, ColorFilter as Pipette, Close as X } from '@icon-park/vue-next';
+import { PreviewOpen as Eye, PreviewCloseOne as EyeOff, ColorFilter as Pipette, Close as X, Aiming } from '@icon-park/vue-next';
 import { ElButton, ElColorPicker } from 'element-plus';
 import { toast } from 'vue-sonner';
 import { ChromePicker, ColorResult, tinycolor } from 'vue-color';
@@ -46,10 +46,10 @@ const onOpenEyeDropper = async () => {
 </script>
 
 <template>
-  <div class="h-full w-full">
+  <div class="flex flex-col h-full">
     <div class="flex items-center h-14 border-b px-4 gap-2.5">
       <h2 class="font-semibold">Stroke</h2>
-      <el-button circle text class="ml-auto h-7 w-7" @click="canvas.onChangeActiveObjectProperty('stroke', disabled ? '#000000' : '')">
+      <el-button circle text class="ml-auto" @click="canvas.onChangeActiveObjectProperty('stroke', disabled ? '#000000' : '')">
         <template v-if="disabled">
           <EyeOff :size="15" :stroke-width="2" />
         </template>
@@ -57,18 +57,15 @@ const onOpenEyeDropper = async () => {
           <Eye :size="15" :stroke-width="2" />
         </template>
       </el-button>
-      <el-button plain circle class="bg-card h-7 w-7" @click="editor.setActiveSidebarRight(null)">
-        <X :size="15" />
-      </el-button>
+      <el-button circle :icon="X" class="bg-card" @click="editor.setActiveSidebarRight(null)" />
     </div>
-    <section class="sidebar-container">
+    <section class="sidebar-container overflow-x-scroll scrollbar-hidden">
       <div :class="cn('px-4 py-4 flex flex-col divide-y', !disabled ? 'opacity-100 pointer-events-auto' : 'opacity-50 pointer-events-none')">
         <div class="pb-4 flex flex-col gap-4">
-          <el-button v-if="eyeDropperStatus" text bg round class="gap-2 justify-between w-full shadow-none" @click="onOpenEyeDropper">
-            <Pipette :size="15" />
-            <span>Pick color from page</span>
-          </el-button>
           <ChromePicker v-model="color" @update:model-value="(color) => onChangeColor(tinycolor(color))" class="shadow-none w-full" />
+          <el-button v-if="eyeDropperStatus" text bg round :icon="Aiming" class="w-full" @click="onOpenEyeDropper">
+            <span>Pickup color</span>
+          </el-button>
         </div>
         <div class="flex flex-col gap-4 py-5">
           <h4 class="text-xs font-semibold line-clamp-1">Light Colors</h4>

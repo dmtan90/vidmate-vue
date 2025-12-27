@@ -45,13 +45,11 @@ const handleClosePlugin = () => {
 </script>
 
 <template>
-  <div class="h-full w-full">
+  <div class="flex flex-col h-full">
     <template v-if="!plugin">
       <div class="flex items-center h-14 border-b px-4 gap-2.5">
         <h2 class="font-semibold">AI Magic</h2>
-        <el-button plain circle class="bg-card h-7 w-7 ml-auto" @click="editor.setActiveSidebarRight(null)">
-          <X :size="15" />
-        </el-button>
+        <el-button circle :icon="X" class="ml-auto" @click="editor.setActiveSidebarRight(null)" />
       </div>
       <section class="sidebar-container px-4 py-4">
         <AIPluginItems :on-select-plugin="handleSelectPlugin" />
@@ -60,9 +58,7 @@ const handleClosePlugin = () => {
     <template v-else>
       <div class="flex items-center h-14 border-b px-4 gap-2.5">
         <h2 class="font-semibold">{{ label }}</h2>
-        <el-button plain circle class="bg-card h-7 w-7 ml-auto" @click="handleClosePlugin">
-          <X :size="15" />
-        </el-button>
+        <el-button circle :icon="X" class="ml-auto" @click="handleClosePlugin" />
       </div>
       <section class="sidebar-container px-4 py-4">
         <AIPluginItem :plugin="plugin" :on-select-plugin="handleSelectPlugin" />

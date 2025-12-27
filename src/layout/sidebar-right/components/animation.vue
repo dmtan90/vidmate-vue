@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted, nextTick } from 'vue';
 import { upperFirst } from 'lodash';
 import { Close as X } from '@icon-park/vue-next';
 
@@ -10,60 +10,52 @@ import { storeToRefs } from "pinia";
 import { defaultSpringConfig, easings, entry, exit, scene } from '@/constants/animations';
 
 import Animations from './Animations.vue';
+import PageAnimation from './PageAnimation.vue';
+import ElementAnimation from './ElementAnimation.vue';
 
 const editor = useEditorStore();
 const canvasStore = useCanvasStore();
 const { canvas, selectionActive: selected } = storeToRefs(canvasStore);
+// const animations = computed(() => );
+watch(selected, (value) => {
+  console.log("selected", value);
+})
 
-const activeTab = ref('in');
-const tabOptions = [
-  {
-    label: 'In',
-    value: 'in'
-  },
-  {
-    label: 'Scene',
-    value: 'scene'
-  },
-  {
-    label: 'Out',
-    value: 'out'
-  },
-];
+// const activeAnimations = ref('page');
+const activeTab = ref('element');
+onMounted(() => {
+  activeTab.value = 'page';
+  setTimeout(() => {
+    activeTab.value = 'element';
+  }, 100);
+});
 
 </script>
 
 <template>
-  <div class="h-full w-full @container animation-container">
+  <div class="flex flex-col h-full animation-container">
     <div class="flex items-center h-14 border-b px-4 gap-2.5">
       <h2 class="font-semibold">Animations</h2>
-      <el-button plain circle class="bg-card h-7 w-7 ml-auto" @click="editor.setActiveSidebarRight(null)">
-        <X :size="15" />
-      </el-button>
+      <el-button circle :icon="X" class="ml-auto" @click="editor.setActiveSidebarRight(null)" />
     </div>
-    <section class="sidebar-container">
-      <div class="px-4 py-4">
-        <el-segmented v-model="activeTab" :options="tabOptions" size="small" class="w-full" />
-      </div>
-      <div class="px-4 flex flex-col divide-y">
-        <template v-if="activeTab == 'in'">
-          <Animations :animations="entry" :selected="selected" type="in" />
-        </template>
-        <template v-else-if="activeTab == 'out'">
-          <Animations :animations="scene" :selected="selected" type="scene" />
-        </template>
-        <template v-else>
-          <Animations :animations="exit" :selected="selected" type="out" />
-        </template>
-      </div>
+    <section class="flex flex-col sidebar-container px-4 py-4 overflow-hidden">
+      <el-tabs v-model="activeTab" stretch>
+        <el-tab-pane label="Page" name="page">
+          <PageAnimation />
+        </el-tab-pane>
+        <el-tab-pane label="Element" name="element">
+          <ElementAnimation />
+        </el-tab-pane>
+      </el-tabs>
     </section>
   </div>
 </template>
 
 <style>
 .animation-container {
-  .el-segmented {
+  /*.el-segmented {
     height: 32px;
-  }
+    --el-border-radius-base: 16px;
+  }*/
 }
 </style>

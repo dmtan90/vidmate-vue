@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useEditorStore } from '@/store/editor';
 import EditorActivityIndicator from './EditorActivityIndicator.vue';
 import { cn } from '@/lib/utils';
@@ -8,8 +8,8 @@ import { fabric } from 'fabric';
 import { storeToRefs } from "pinia";
 
 const props = defineProps({
-  page: {
-    type: Number,
+  id: {
+    type: String,
     required: true,
   },
 });
@@ -17,19 +17,62 @@ const props = defineProps({
 const editor = useEditorStore();
 const canvasStore = useCanvasStore();
 const refCanvas = ref(null);
-const { page } = storeToRefs(editor);
+const { page, pages } = storeToRefs(editor);
+const container = ref(null);
+const canvas = ref(null);
+const selected = ref(false);
+onMounted(() => {
+  canvas.value = editor.getPageById(props.id);
+  selected.value = (page.value != undefined && pages.value != undefined && props  != undefined && pages.value[page.value].id == props.id);
+});
 
-watch(refCanvas, (canvas) => {
-  if(canvas){
-    canvasStore.initializeCanvas(editor.pages[props.page], canvas);  
+watch([page, pages], (values) => {
+  selected.value = (page.value != undefined && pages.value != undefined && props  != undefined && pages.value[page.value].id == props.id);
+  // console.log(values, selected.value);
+});
+
+// const selected = computed({
+//   get(){
+//     if(page.value != undefined && pages.value != undefined && props != undefined && pages.value[page.value].id == props.id){
+//       return true;
+//     }
+//     return false;
+//   }
+// });
+
+const pending = computed(() => canvas.value?.template?.pending ?? true);
+watch(refCanvas, (value) => {
+  if(value){
+    // console.log("refCanvas", canvas.value);
+    canvasStore.initializeCanvas(canvas.value, value);
   }
+});
+
+const resizeObserver = new ResizeObserver((entries) => {
+  try{
+    const zoom = entries.length > 0 ? entries[0].contentRect.height / canvas.value?.workspace.height : 1;
+    // console.log("zoom", zoom);
+    canvas.value?.workspace?.changeZoom(zoom);
+  }catch(error){
+
+  }
+});
+
+watch(container, (el) => {
+  if(el){
+    resizeObserver.observe(el);
+  }
+});
+
+onUnmounted(() => {
+  resizeObserver.disconnect();
 });
 
 </script>
 
 <template>
-  <div :class="cn('absolute', page !== props.page ? 'opacity-0 z-0' : 'opacity-100 z-10')">
+  <div ref="container" :class="cn('absolute', selected ? 'opacity-100 z-10' : 'opacity-0 z-0')">
     <canvas ref="refCanvas" />
-    <EditorActivityIndicator :pending="editor.pages[props.page]?.template?.pending" />
+    <EditorActivityIndicator :pending="pending" />
   </div>
 </template>

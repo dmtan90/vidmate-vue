@@ -55,6 +55,7 @@ export interface EditorAudioElement {
   visualEnabled: boolean;
   visualType: VisualType;
   visualProps: PropsBarsType | PropsCircleType | PropsLineType | PropsMediaType | PropsWaveformType;
+  type: "audio"
 }
 
 export interface EditorTrimVideo {

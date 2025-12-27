@@ -17,193 +17,203 @@ import type { EditorAudioElement, EditorTemplate, EditorTemplatePage } from "@/t
 
 export const useEditorStore = defineStore('editor', {
   state: () => ({
-    instance: createInstance(Editor) as Editor,
+    _editor: createInstance(Editor) as Editor,
   }),
 
   getters: {
+    instance(state) : Editor {
+      return this._editor;
+    },
     page(state) : number {
-      return this.instance.page;
+      return this._editor.page;
     },
     id(state) : string {
-      return this.instance.id;
+      return this._editor.id;
     },
     mode(state){
-      return this.instance.mode;
+      return this._editor.mode;
     },
     name(state) : string {
-      return this.instance.name;
+      return this._editor.name;
     },
     status(state){
-      return this.instance.status;
+      return this._editor.status;
     },
     pages(state) : Canvas[] {
-      return this.instance.pages as Canvas[];
+      return this._editor.pages as Canvas[];
     },
     controller(state){
-      return this.instance.controller;
+      return this._editor.controller;
     },
     adapter(state){
-      return this.instance.adapter;
+      return this._editor.adapter;
     },
     prompter(state){
-      return this.instance.prompter;
+      return this._editor.prompter;
     },
     recorder(state){
-      return this.instance.recorder;
+      return this._editor.recorder;
     },
     saving(state){
-      return this.instance.saving;
+      return this._editor.saving;
     },
     preview(state){
-      return this.instance.preview;
+      return this._editor.preview;
     },
     exporting(state){
-      return this.instance.exporting;
+      return this._editor.exporting;
     },
     ffmpeg(state){
-      return this.instance.ffmpeg;
+      return this._editor.ffmpeg;
     },
     progress(state){
-      return this.instance.progress;
+      return this._editor.progress;
     },
     blob(state){
-      return this.instance.blob;
+      return this._editor.blob;
     },
     frame(state){
-      return this.instance.frame;
+      return this._editor.frame;
     },
     file(state){
-      return this.instance.file;
+      return this._editor.file;
     },
     fps(state){
-      return this.instance.fps;
+      return this._editor.fps;
     },
     codec(state){
-      return this.instance.codec;
+      return this._editor.codec;
     },
     exports(state){
-      return this.instance.exports;
+      return this._editor.exports;
     },
     sidebarLeft(state){
-      return this.instance.sidebarLeft;
+      return this._editor.sidebarLeft;
     },
     sidebarRight(state){
-      return this.instance.sidebarRight;
+      return this._editor.sidebarRight;
     },
     timelineOpen(state){
-      return this.instance.timelineOpen;
+      return this._editor.timelineOpen;
     },
     canvas(state) : Canvas {
-      return this.instance?.canvas as Canvas;
+      return this._editor?.canvas as Canvas;
     },
     dimension() {
-      return this.instance?.dimension;
+      return this._editor?.dimension;
+    },
+    timelineOpen(){
+      return this._editor.timelineOpen;
     }
   },
 
   actions: {
     _progressEvent({ progress, frame }: { progress: number; frame?: string }) {
-      this.instance._progressEvent({ progress, frame });
+      this._editor._progressEvent({ progress, frame });
     },
 
     async initialize(mode?: EditorMode) {
-      this.instance.initialize(mode);
+      this._editor.initialize(mode);
     },
 
     async exportAudio() {
-      return this.instance.exportAudio();
+      return this._editor.exportAudio();
     },
 
     async exportVideo() {
-      return this.instance.exportVideo();
+      return this._editor.exportVideo();
     },
 
     async exportTemplate() {
-      return this.instance.exportTemplate();
+      return this._editor.exportTemplate();
     },
 
     loadTemplate(template: EditorTemplate, mode: "replace" | "reset") {
-      this.instance.loadTemplate(template, mode);
+      this._editor.loadTemplate(template, mode);
     },
 
     onResetProgress() {
-      this.instance.onResetProgress();
+      this._editor.onResetProgress();
     },
 
     onChangeExportStatus(status: ExportProgress) {
-      this.instance.onChangeExportStatus(status);
+      this._editor.onChangeExportStatus(status);
     },
 
     onChangeExportCodec(codec: string) {
-      this.instance.onChangeExportCodec(codec);
+      this._editor.onChangeExportCodec(codec);
     },
 
     onChangeExportFPS(fps: string) {
-      this.instance.onChangeExportFPS(fps);
+      this._editor.onChangeExportFPS(fps);
     },
 
     onChangeExportMode(mode: ExportMode) {
-      this.instance.onChangeExportMode(mode);
+      this._editor.onChangeExportMode(mode);
     },
 
     onChangeFileName(name: string) {
-      this.instance.onChangeFileName(name);
+      this._editor.onChangeFileName(name);
     },
 
     onChangeName(name: string) {
-      this.instance.onChangeName(name);
+      this._editor.onChangeName(name);
     },
 
     setActiveSidebarLeft(sidebar: string | null) {
-      this.instance.setActiveSidebarLeft(sidebar);
+      this._editor.setActiveSidebarLeft(sidebar);
     },
 
     setActiveSidebarRight(sidebar: string | null) {
-      this.instance.setActiveSidebarRight(sidebar);
+      this._editor.setActiveSidebarRight(sidebar);
+    },
+
+    getPageById(id: string){
+      return this._editor.getPageById(id);
     },
 
     addPage(template?: EditorTemplate) {
-      this.instance.addPage(template);
+      this._editor.addPage(template);
     },
 
     deleteActivePage() {
-      this.instance.deleteActivePage();
+      this._editor.deleteActivePage();
     },
 
     deletePage(index: number) {
-      this.instance.deletePage(index);
+      this._editor.deletePage(index);
     },
 
-    clonePage(index: number) {
-      this.instance.clonePage(index);
+    copyPage(index: number) {
+      this._editor.copyPage(index);
     },
 
     swapPage(oldIndex: number, newIndex: number) {
-      this.instance.swapPage(oldIndex, newIndex);
+      this._editor.swapPage(oldIndex, newIndex);
     },
 
     onChangeActivePage(index: number) {
-      this.instance.onChangeActivePage(index);
+      this._editor.onChangeActivePage(index);
     },
 
     onTogglePreviewModal(mode: "open" | "close") {
-      this.instance.onTogglePreviewModal(mode);
+      this._editor.onTogglePreviewModal(mode);
     },
 
     onToggleMode(mode?: EditorMode) {
-      this.instance.onToggleMode(mode);
+      this._editor.onToggleMode(mode);
     },
 
     onToggleTimeline(mode?: "open" | "close") {
-      this.instance.onToggleTimeline(mode);
+      this._editor.onToggleTimeline(mode);
     },
 
     changeStatus(status: EditorStatus) {
-      this.instance.changeStatus(status);
+      this._editor.changeStatus(status);
     },
 
-    resizeArtboards(dimensions: { width: number; height: number }){
-      this.instance.resizeArtboards(dimensions);
+    resize(dimensions: { width: number; height: number }, changeArtboards: boolean = false){
+      this._editor.resize(dimensions, changeArtboards);
     },
 
     getCanvasInstance(page: number): fabric.Canvas {

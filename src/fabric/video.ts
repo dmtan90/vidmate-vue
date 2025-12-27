@@ -7,22 +7,78 @@ const FILL = 'fill';
 const Video = fabric.util.createClass(fabric.Image, {
   type: "video",
   playing: false,
-  // thumbnail: null,
 
   initialize: function (element: HTMLVideoElement, options?: fabric.IVideoOptions) {
     options = options || {};
 
     element.loop = false;
     element.currentTime = 0;
-    element.muted = options.muted ?? false;
+    element.muted = options.muted ?? (options.hasAudio ? false : true);
     element.crossOrigin = options.crossOrigin ?? null;
+    element.volume = options.volume ?? (options.hasAudio ? 1 : 0);
 
     this.callSuper("initialize", element, options);
-    this.set({ left: options.left ?? 0, top: options.top ?? 0, trimStart: options.trimStart ?? 0, trimEnd: options.trimEnd ?? 0, hasAudio: options.hasAudio ?? false, objectCaching: false });
+    this.set({ 
+      left: options.left ?? 0, 
+      top: options.top ?? 0, 
+      trimStart: options.trimStart ?? 0, 
+      trimEnd: options.trimEnd ?? 0, 
+      hasAudio: options.hasAudio ?? false, 
+      objectCaching: options.objectCaching ?? false,
+      volume: element.volume,
+      muted: element.muted,
+      thumbnail: options.thumbnail
+    });
     this.on("added", () => fabric.util.requestAnimFrame(this.update.bind(this)));
+    // this.on("modified", this.update.bind(this));
   },
 
-  muted: function (value?: boolean) {
+  set(key: string, value: any) {
+    // this.callSuper("_set", key, value);
+    // this.update();
+    // if (isUndefined(value)) return this;
+    // const element = this._originalElement as HTMLVideoElement;
+    if(key == "muted"){
+      // console.log("set", key, value);
+      this._muted(value);
+      // element.muted = value;
+    }
+    else if(key == "volume"){
+      // console.log("set", key, value);
+      this._volume(value);
+      // element.volume = value;
+    }
+    return this.callSuper("set", key, value);
+  },
+
+  // get muted(){
+  //   const element = this._originalElement as HTMLVideoElement;
+  //   if (!element) return true;
+  //   return element.muted;
+  // },
+
+  // set muted(value: boolean){
+  //   console.log("muted", muted);
+  //   const element = this._originalElement as HTMLVideoElement;
+  //   if (!element) return;
+  //   if (isUndefined(value)) value = true;
+  //   element.muted = value;
+  // },
+
+  // get volume(){
+  //   const element = this._originalElement as HTMLVideoElement;
+  //   if (!this.hasAudio || !element) return 0;
+  //   return element.volume;
+  // },
+
+  // set volume(value: number){
+  //   console.log("volume", volume);
+  //   const element = this._originalElement as HTMLVideoElement;
+  //   if (!element || isUndefined(value)) return;
+  //   element.volume = value;
+  // },
+
+  _muted: function (value?: boolean) {
     const element = this._originalElement as HTMLVideoElement;
     if (!element) return true;
     if (isUndefined(value)) return element.muted;
@@ -30,7 +86,7 @@ const Video = fabric.util.createClass(fabric.Image, {
     return value;
   },
 
-  volume: function (value?: number) {
+  _volume: function (value?: number) {
     const element = this._originalElement as HTMLVideoElement;
     if (!this.hasAudio || !element) return 0;
     if (isUndefined(value)) return element.volume;
@@ -67,14 +123,18 @@ const Video = fabric.util.createClass(fabric.Image, {
 
   update: function () {
     if (this.canvas) {
-      const backend = fabric.filterBackend;
-      if (backend?.evictCachesForKey) {
-        backend.evictCachesForKey(this.cacheKey);
-        backend.evictCachesForKey(this.cacheKey + "_filtered");
+      try{
+        const backend = fabric.filterBackend;
+        if (backend?.evictCachesForKey) {
+          backend.evictCachesForKey(this.cacheKey);
+          backend.evictCachesForKey(this.cacheKey + "_filtered");
+        }
+        this.applyFilters();
+        this.canvas.renderAll();
+        fabric.util.requestAnimFrame(this.update.bind(this));
+      }catch(error){
+        console.error(error);
       }
-      this.applyFilters();
-      this.canvas.renderAll();
-      fabric.util.requestAnimFrame(this.update.bind(this));
     }
   },
 
@@ -184,73 +244,78 @@ const Video = fabric.util.createClass(fabric.Image, {
   },
 
   toCanvasElement: function(options) {
-    console.log("toCanvasElement", options);
-    options || (options = { });
+    try{
+      // console.log("toCanvasElement", options);
+      options || (options = { });
 
-    var utils = fabric.util, origParams = utils.saveObjectTransform(this),
-        originalGroup = this.group,
-        originalShadow = this.shadow, abs = Math.abs,
-        multiplier = (options.multiplier || 1) * (options.enableRetinaScaling ? fabric.devicePixelRatio : 1);
-    delete this.group;
-    if (options.withoutTransform) {
-      utils.resetObjectTransform(this);
-    }
-    if (options.withoutShadow) {
-      this.shadow = null;
-    }
-
-    var el = fabric.util.createCanvasElement(),
-        // skip canvas zoom and calculate with setCoords now.
-        boundingRect = this.getBoundingRect(true, true),
-        shadow = this.shadow, scaling,
-        shadowOffset = { x: 0, y: 0 }, shadowBlur,
-        width, height;
-
-    if (shadow) {
-      shadowBlur = shadow.blur;
-      if (shadow.nonScaling) {
-        scaling = { scaleX: 1, scaleY: 1 };
+      var utils = fabric.util, origParams = utils.saveObjectTransform(this),
+          originalGroup = this.group,
+          originalShadow = this.shadow, abs = Math.abs,
+          multiplier = (options.multiplier || 1) * (options.enableRetinaScaling ? fabric.devicePixelRatio : 1);
+      delete this.group;
+      if (options.withoutTransform) {
+        utils.resetObjectTransform(this);
       }
-      else {
-        scaling = this.getObjectScaling();
+      if (options.withoutShadow) {
+        this.shadow = null;
       }
-      // consider non scaling shadow.
-      shadowOffset.x = 2 * Math.round(abs(shadow.offsetX) + shadowBlur) * (abs(scaling.scaleX));
-      shadowOffset.y = 2 * Math.round(abs(shadow.offsetY) + shadowBlur) * (abs(scaling.scaleY));
-    }
-    width = boundingRect.width + shadowOffset.x;
-    height = boundingRect.height + shadowOffset.y;
-    // if the current width/height is not an integer
-    // we need to make it so.
-    el.width = Math.ceil(width);
-    el.height = Math.ceil(height);
-    var canvas = new fabric.StaticCanvas(el, {
-      enableRetinaScaling: false,
-      renderOnAddRemove: false,
-      skipOffscreen: false,
-    });
-    if (options.format === 'jpeg') {
-      canvas.backgroundColor = '#fff';
-    }
-    this.setPositionByOrigin(new fabric.Point(canvas.width / 2, canvas.height / 2), 'center', 'center');
 
-    var originalCanvas = this.canvas;
-    canvas.add(this);
-    var canvasEl = canvas.toCanvasElement(multiplier || 1, options);
-    this.shadow = originalShadow;
-    this.set('canvas', originalCanvas);
-    if (originalGroup) {
-      this.group = originalGroup;
-    }
-    this.set(origParams).setCoords();
-    // canvas.dispose will call image.dispose that will nullify the elements
-    // since this canvas is a simple element for the process, we remove references
-    // to objects in this way in order to avoid object trashing.
-    canvas._objects = [];
-    canvas.dispose();
-    canvas = null;
+      var el = fabric.util.createCanvasElement(),
+          // skip canvas zoom and calculate with setCoords now.
+          boundingRect = this.getBoundingRect(true, true),
+          shadow = this.shadow, scaling,
+          shadowOffset = { x: 0, y: 0 }, shadowBlur,
+          width, height;
 
-    return canvasEl;
+      if (shadow) {
+        shadowBlur = shadow.blur;
+        if (shadow.nonScaling) {
+          scaling = { scaleX: 1, scaleY: 1 };
+        }
+        else {
+          scaling = this.getObjectScaling();
+        }
+        // consider non scaling shadow.
+        shadowOffset.x = 2 * Math.round(abs(shadow.offsetX) + shadowBlur) * (abs(scaling.scaleX));
+        shadowOffset.y = 2 * Math.round(abs(shadow.offsetY) + shadowBlur) * (abs(scaling.scaleY));
+      }
+      width = boundingRect.width + shadowOffset.x;
+      height = boundingRect.height + shadowOffset.y;
+      // if the current width/height is not an integer
+      // we need to make it so.
+      el.width = Math.ceil(width);
+      el.height = Math.ceil(height);
+      var canvas = new fabric.StaticCanvas(el, {
+        enableRetinaScaling: false,
+        renderOnAddRemove: false,
+        skipOffscreen: false,
+      });
+      if (options.format === 'jpeg') {
+        canvas.backgroundColor = '#fff';
+      }
+      this.setPositionByOrigin(new fabric.Point(canvas.width / 2, canvas.height / 2), 'center', 'center');
+
+      var originalCanvas = this.canvas;
+      canvas.add(this);
+      var canvasEl = canvas.toCanvasElement(multiplier || 1, options);
+      this.shadow = originalShadow;
+      this.set('canvas', originalCanvas);
+      if (originalGroup) {
+        this.group = originalGroup;
+      }
+      this.set(origParams).setCoords();
+      // canvas.dispose will call image.dispose that will nullify the elements
+      // since this canvas is a simple element for the process, we remove references
+      // to objects in this way in order to avoid object trashing.
+      canvas._objects = [];
+      canvas.dispose();
+      canvas = null;
+
+      return canvasEl;
+    }catch(error){
+      console.error("toCanvasElement", error);
+    }
+    return null;
   },
 
   // /**

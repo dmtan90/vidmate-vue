@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useEditorStore } from '@/store/editor';
-import { ElButton } from 'element-plus';
+// import { ElButton } from 'element-plus';
 import { type AISelectPluginProps } from './ai.vue';
 
 // interface AISelectPluginProps {

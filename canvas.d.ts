@@ -2509,6 +2509,7 @@ interface IVideoOptions extends IImageOptions {
   trimStart?: number;
   trimEnd?: number;
   hasAudio?: boolean;
+  thumbnail?: string;
 }
 
 import type { VisualType, VisualProps } from "audio-visual";

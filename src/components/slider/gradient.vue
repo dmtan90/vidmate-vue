@@ -76,7 +76,6 @@ const handleRotate = (newAngle: number) => {
           :resizable="false"
           axis="x"
           :x="stop.x"
-          :y="0"
           :min-width="0"
           :min-height="0"
           :max-width="10"

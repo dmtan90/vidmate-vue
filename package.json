@@ -32,15 +32,14 @@
     "vue": "^3.5.17",
     "vue-cmdk": "^0.0.1",
     "vue-color": "^3.2.0",
-    "vue-draggable-next": "^2.2.1",
     "vue-draggable-resizable": "^3.0.0",
-    "vue-draggable-resizable-gorkys-vue3": "^2.5.1",
+    "vue-draggable-plus": "^0.6.0",
     "vue-sonner": "^2.0.1",
-    "vue3-draggable-resizable": "^1.6.5",
     "webfontloader": "^1.6.28",
     "zod": "^3.25.67",
     "gifuct-js": "^2.1.2",
-    "@meersagor/wavesurfer-vue": "^1.0.0"
+    "@meersagor/wavesurfer-vue": "^1.0.0",
+    "mediabunny": "^1.25.3"
   },
   "devDependencies": {
     "@ffmpeg/types": "^0.12.4",

@@ -47,10 +47,10 @@ const onAddPixelsImage = (source: string, thumbnail: string, preload: boolean) =
 
 const onAddPixelsVideo = (source: string, thumbnail: string) => {
   if (editor.canvas.replacer.active?.type === "video") {
-    const promise = editor.canvas.replacer.replace(source, true);
+    const promise = editor.canvas.replacer.replace(source, true, thumbnail);
     toast.promise(promise, { loading: "The video is being replaced...", success: "The video has been replaced", error: "Ran into an error while replacing the video" });
   } else if (!thumbnail || !isImageLoaded(thumbnail)) {
-    const promise = editor.canvas.onAddVideoFromSource(source);
+    const promise = editor.canvas.onAddVideoFromSource(source, { thumbnail });
     toast.promise(promise, { loading: "The video asset is being loaded...", success: "The video asset has been added to artboard", error: "Ran into an error adding the video asset" });
   } else {
     toast.promise(editor.canvas.onAddVideoFromThumbnail(source, thumbnail), { error: "Ran into an error adding the video asset" });

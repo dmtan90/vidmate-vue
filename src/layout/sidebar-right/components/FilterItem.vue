@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { cn } from '@/lib/utils';
 import { filterPlaceholder } from '@/constants/editor';
 import Label from '@/components/ui/label.vue';
-import { ElButton } from 'element-plus';
+// import { ElButton } from 'element-plus';
 
 const props = defineProps<{ filter: any; selected: any; onChange: (value: number) => void; onClick: () => void }>();
 
@@ -38,7 +38,7 @@ const filterValue = computed({
         <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-card-foreground" />
         <span class="absolute bottom-1 left-2 text-card text-xs font-medium">{{ filter.name }}</span>
       </button>
-      <div class="flex items-center justify-between gap-10">
+      <div class="flex items-center justify-between gap-10" v-if="filter.name != 'None'">
         <Label class="text-xs font-medium">Intensity</Label>
         <el-slider :min="1" :max="100" :step="1" v-model="filterValue" />
       </div>

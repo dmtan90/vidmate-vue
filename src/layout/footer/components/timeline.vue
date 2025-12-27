@@ -21,22 +21,28 @@ const HANDLE_WIDTH = 16;
 
 const editor = useEditorStore();
 const canvasStore = useCanvasStore();
-const { canvas, timeline, animations, elements, selection, audio } = storeToRefs(canvasStore);
+const { canvas, timeline, animations, elements, selection, audioElements } = storeToRefs(canvasStore);
+
 const [containerRef, dimensions] = useMeasure();
 // const canvas = editor.canvas;
 watch(canvas, () => {
-  // console.log("canvas", canvas);
+  console.log("canvas", canvas);
   forceUpdate();
 });
+watch(audioElements, (value) => {
+  console.log("audioElements", audioElements);
+  // forceUpdate();
+});
 
-const durationInSeconds = computed(() => timeline.value?.duration / 1000);
-const seekTimeInSeconds = computed(() => timeline.value?.seek / 1000);
+const durationInSeconds = computed(() => (timeline.value?.duration ?? 0) / 1000);
+const seekTimeInSeconds = computed(() => (timeline.value?.seek ?? 0) / 1000);
 
 const disabled = computed(() => timeline.value?.playing || animations.value?.previewing);
 
 const trackWidth = computed(() => durationInSeconds.value * SEEK_TIME_WIDTH);
 const trackBackgroundWidth = computed(() => Math.max(dimensions.value.width, (durationInSeconds.value + 6) * SEEK_TIME_WIDTH));
 const timelineAmount = computed(() => Math.floor(trackBackgroundWidth.value / SEEK_TIME_WIDTH));
+// const audioElements = computed(() => editor.value?.canvas?.audio ?? []);
 
 const forceUpdate = () => {
   // seekTimeInSeconds; durationInSeconds; disabled; trackWidth; trackBackgroundWidth; timelineAmount
@@ -88,21 +94,21 @@ const controls = useDragControls();
 // };
 
 const onSelectTrack = (event, item) => {
-  // console.log("onSelectTrack", item, disabled);
+  console.log("onSelectTrack", selection.value, item);
   if(disabled.value){
     return
   }
 
-  selection.value?.selectObjectByName(item.name, event.shiftKey);
-  // if(item.type == 'audio' || !item.type){
-  //   selection.value?.selectAudio(item);
-  // }
-  // else{
-  //   selection.value?.selectObjectByName(item.name, event.shiftKey);  
-  // }
+  // selection.value?.selectObjectByName(item.name, event.shiftKey);
+  if(item.type == 'audio' || !item.type){
+    selection.value?.selectAudio(item);
+  }
+  else{
+    selection.value?.selectObjectByName(item.name, event.shiftKey);  
+  }
 };
 
-// watch([audio, elements], (values) => {
+// watch([audioElements, elements], (values) => {
 //   console.log("Elements", values);
 // });
 
@@ -129,7 +135,6 @@ const onSelectTrack = (event, item) => {
       <VueDraggable
         axis="x"
         :x="seekTimeInSeconds * SEEK_TIME_WIDTH"
-        :y="0"
         :w="1"
         :z="999"
         :resizable="false"
@@ -141,9 +146,13 @@ const onSelectTrack = (event, item) => {
       </VueDraggable>
       <div class="absolute top-8 py-2.5 bottom-0 overflow-y-scroll scrollbar-hidden flex flex-col gap-1" :style="{ width: `${trackBackgroundWidth}px` }">
         <!--<TimelineElementItem v-for="element in [...elements].reverse()" :key="element.name" :element="element" :track-width="trackWidth" @click="(event) => onSelectTrack(event, element)"/>
-        <TimelineAudioItem v-for="audio in [...audio.elements].reverse()" :key="audio.id" :audio="audio" :track-width="trackWidth" @click="(event) => onSelectTrack(event, element)"/>-->
+        <TimelineAudioItem v-for="audio in [...audio.elements].reverse()" :key="audio.id" :audio="audio" :track-width="trackWidth" @click="(event) => onSelectTrack(event, element)"/>
+        -->
         <template v-for="element in [...elements].reverse()" :key="element.name">
-          <TimelineItem :element="element" :track-width="trackWidth" :type="element.type" @click="(event) => onSelectTrack(event, element)"/>
+          <TimelineItem v-if="element.meta && element.meta.duration" :element="element" :track-width="trackWidth" :type="element.type" @click="(event) => onSelectTrack(event, element)"/>
+        </template>
+        <template v-for="element in [...audioElements].reverse()" :key="element.id">
+          <TimelineItem :element="element" :track-width="trackWidth" type="audio" @click="(event) => onSelectTrack(event, element)"/>
         </template>
         <!--<TimelineItem v-for="element in [...audio.elements].reverse()" :key="element.id" :element="element" :track-width="trackWidth" type="audio" @click="(event) => onSelectTrack(event, element)"/>-->
       </div>

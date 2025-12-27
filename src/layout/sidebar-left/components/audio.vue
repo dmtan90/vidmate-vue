@@ -38,7 +38,7 @@ const handleUpload = (options: any) => {
 };
 
 const onAddAudio = (audio: any) => {
-  const promise = editor.canvas.audio.add(audio.source, audio.name, true);
+  const promise = editor.canvas.audio.add(audio.source, audio.name, false);
   // const promise = editor.canvas.onAddAudioFromSource(audio.source).then(element => {
   //   console.log(element);
   //   editor.canvas.audio.add(audio.source, audio.name, element.name);

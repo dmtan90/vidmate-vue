@@ -68,7 +68,7 @@ const loadTemplate = (template: any, mode: string) => {
   if(_template.pages.length > 1){
     _template.pages = [];
     const pages = template.pages;
-    const ratio = dimension.width / dimension.height;
+    const ratio = dimension.value.width / dimension.value.height;
     for(let i = 0; i < pages.length; i++){
       let page = pages[i];
       const pageRatio = page.data ? (page.data.width / page.data.height) : 0;
@@ -106,7 +106,7 @@ const loadTemplate = (template: any, mode: string) => {
         @mouseover="templates[index].play = true" @mouseleave="templates[index].play = false">
           <video v-if="templates[index].play" :src="template.pages[0].preview" class="absolute left-0 top-0 z-10 h-full w-full object-cover" autoplay loop />
           <img :src="template.pages[0].thumbnail" :alt="template.name" class="group-hover:scale-110 transition-transform" />
-          <el-dropdown placement="bottom-end" class="absolute right-1 top-1" @command="(cmd) => loadTemplate(template, cmd)">
+          <el-dropdown placement="bottom-end" class="absolute right-1 top-1 z-10" @command="(cmd) => loadTemplate(template, cmd)">
             <el-button type="primary" text circle>
               <MoreOne :size="15" />
             </el-button>

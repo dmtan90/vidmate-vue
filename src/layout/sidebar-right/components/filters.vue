@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Eye, EyesClose as EyeOff, Close as X } from '@icon-park/vue-next';
+import { PreviewOpen as Eye, PreviewCloseOne as EyeOff, Close as X } from '@icon-park/vue-next';
 
 import Label from '@/components/ui/label.vue';
 import Toggle from '@/components/ui/toggle.vue';
@@ -11,15 +11,23 @@ import { storeToRefs } from "pinia";
 import { filters, adjustments } from '@/constants/filters';
 import { cn } from '@/lib/utils';
 
-import FilterItem from './FilterItem.vue';
+// import FilterItem from './FilterItem.vue';
+import FilterItem from './FilterItem2.vue';
 import AdjustmentItem from './AdjustmentItem.vue';
 
 const editor = useEditorStore();
 const canvasStore = useCanvasStore();
-const { canvas, selectionActive: selected, effects } = storeToRefs(canvasStore);
+const { canvas, selectionActive: selected, effects, instance } = storeToRefs(canvasStore);
+const filterEnabled = computed(() => selected.value?.filters?.length > 0);
+const filterName = computed(() => selected.value?.effects?.name);
+
+const removeFilters = () => {
+  const image = instance.value?.getActiveObject() as fabric.Image;
+  effects.value.removeImageFilters(image);
+};
 
 const handleToggleFilter = (filter: any) => {
-  if (selected.value?.effects?.name === filter.name) {
+  if (filterName.value === filter.name) {
     effects.value.removeFilterFromActiveImage(filter.name);
   } else {
     effects.value.addFilterToActiveImage(filter.filter(50), filter.name, 50);
@@ -32,15 +40,36 @@ const handleModifyFilter = (filter: any, intensity: number) => {
 
 const handleToggleAdjustment = (adjustment: any, active: boolean) => {
   if (active) {
-    effects.value.applyAdjustmentToActiveImage(adjustment.filter(0), adjustment.name, 0);
+    // console.log("handleToggleAdjustment");
+    // effects.value.applyAdjustmentToActiveImage(adjustment.filter(0), adjustment.name, 0);
+    handleModifyAdjustment(adjustment, {});
   } else {
     effects.value.removeAdjustmentFromActiveImage(adjustment.name);
   }
 };
 
-const handleModifyAdjustment = (adjustment: any, intensity: number) => {
-  console.log("handleModifyAdjustment", adjustment, intensity);
-  effects.value.applyAdjustmentToActiveImage(adjustment.filter(intensity), adjustment.name, intensity);
+const handleModifyAdjustment = (adjustment: any, options: any) => {
+  console.log("handleModifyAdjustment", adjustment, options);
+  const name = adjustment.name;
+  const booleanFilters = ['Invert', 'Sepia', 'BlackWhite', 'Brownie', 'Vintage', 'Kodachrome', 'Technicolor', 'Polaroid'];
+  if(booleanFilters.includes(name)){
+    effects.value.applyAdjustmentToActiveImage(adjustment.filter(true), name, options.intensity);
+  }
+  else if(name == "BlendColor"){
+    effects.value.applyAdjustmentToActiveImage(adjustment.filter(options.mode, options.color, options.intensity), name, options.intensity);
+  }
+  else if(name == "Duotone"){
+    effects.value.applyAdjustmentToActiveImage(adjustment.filter(options.lightMode, options.darkMode, options.lightColor, options.darkColor, options.lightAlpha, options.darkAlpha), name, options.intensity);
+  }
+  else if(name == "RemoveColor"){
+    effects.value.applyAdjustmentToActiveImage(adjustment.filter(options.color, options.intensity), name, options.intensity);
+  }
+  else if(name == "Grayscale"){
+    effects.value.applyAdjustmentToActiveImage(adjustment.filter(options.mode), name, options.intensity);
+  }
+  else{
+    effects.value.applyAdjustmentToActiveImage(adjustment.filter(options.intensity), name, options.intensity);
+  }
 };
 
 const activeTab = ref('effects');
@@ -48,60 +77,74 @@ const activeTab = ref('effects');
 const options = [
   {
     value: 'effects',
-    label: 'Effects'
+    label: 'Filter'
   },
   {
     value: 'adjustments',
-    label: 'Adjustments'
+    label: 'Adjust'
   }
 ];
+
+const intensity = computed({
+  get(){
+    return selected.value.effects?.intensity || 50
+  },
+
+  set(value){
+    let filter = null;
+    if(!filterName.value){
+      return;
+    }
+    for(let i = 0; i < filters.length; i++){
+      if(filterName.value === filters[i].name){
+        filter = filters[i]
+        break
+      }
+    }
+
+    if(filter){
+      handleModifyFilter(filter, value);
+    }
+  }
+});
 
 </script>
 
 <template>
-  <div class="h-full w-full">
+  <div class="flex flex-col h-full">
     <div class="flex items-center h-14 border-b px-4 gap-2.5">
       <h2 class="font-semibold">Filters</h2>
-      <el-button plain circle class="bg-card h-7 w-7 ml-auto" @click="editor.setActiveSidebarRight(null)">
-        <X :size="15" />
+      <el-button v-if="filterEnabled" :icon="EyeOff" type="danger" text bg round class="ml-auto" @click="removeFilters()">
+        <span>Reset</span>
+      </el-button>
+      <el-button circle :icon="X" :class="'bg-card ' + (filterEnabled ? '' : 'ml-auto')" @click="editor.setActiveSidebarRight(null)">
       </el-button>
     </div>
-    <section class="sidebar-container px-4 py-4">
+    <section class="flex flex-col sidebar-container px-4 py-4">
       <el-segmented v-model="activeTab" :options="options" block style="--el-border-radius-base: 20px;"/>
-      <div class="flex flex-col gap-3 pt-3.5">
+      <div class="relative overflow-x-scroll scrollbar-hidden">
         <template v-if="activeTab == 'effects'">
-          <FilterItem v-for="filter in filters" :key="filter.name" :filter="filter" :selected="selected" @change="(intensity) => handleModifyFilter(filter, intensity)" @click="handleToggleFilter(filter)" />
-        </template>
-        <template v-else>
-          <AdjustmentItem
-            v-for="adjustment in adjustments"
-            :key="adjustment.name"
-            :adjustment="adjustment"
-            :selected="selected"
-            @change="(intensity) => handleModifyAdjustment(adjustment, intensity)"
-            @toggle="(active) => handleToggleAdjustment(adjustment, active)"
-          />
-        </template>
-      </div>
-      <!--<el-tabs v-model="activeTab" type="card" stretch>
-        <el-tab-pane label="Effects" name="effects">
-          <div class="flex flex-col gap-3 pt-3.5">
+          <div class="grid grid-cols-2 gap-3 pt-3.5">
             <FilterItem v-for="filter in filters" :key="filter.name" :filter="filter" :selected="selected" @change="(intensity) => handleModifyFilter(filter, intensity)" @click="handleToggleFilter(filter)" />
           </div>
-        </el-tab-pane>
-        <el-tab-pane label="Adjustments" name="adjustments">
-          <div class="flex flex-col gap-4 pt-5">
+        </template>
+        <template v-else>
+          <div class="flex flex-col gap-3 pt-3.5">
             <AdjustmentItem
               v-for="adjustment in adjustments"
               :key="adjustment.name"
               :adjustment="adjustment"
               :selected="selected"
-              @change="(intensity) => handleModifyAdjustment(adjustment, intensity)"
+              @change="(options) => handleModifyAdjustment(adjustment, options)"
               @toggle="(active) => handleToggleAdjustment(adjustment, active)"
             />
           </div>
-        </el-tab-pane>
-      </el-tabs>-->
+        </template>
+      </div>
     </section>
+    <div class="flex items-center h-14 border-b px-4 gap-2.5" v-if="filterEnabled && activeTab == 'effects'">
+      <Label class="text-xs font-medium">Intensity</Label>
+      <el-slider :min="1" :max="100" :step="1" v-model="intensity" />
+    </div>
   </div>
 </template>

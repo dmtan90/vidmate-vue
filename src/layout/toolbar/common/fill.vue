@@ -19,17 +19,19 @@ const background = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-center gap-2.5">
+  <div class="flex items-center">
     <el-button
       @click="editor.setActiveSidebarRight(editor.sidebarRight === 'fill' ? null : 'fill')"
-      type="primary" text bg round
-      :class="cn('gap-1.5 px-2.5', editor.sidebarRight === 'fill' ? 'bg-card' : '')"
+      text bg round
+      :type="!selected?.fill ? '' : 'primary'"
+      :disabled="editor.sidebarRight === 'fill'"
+      :class="cn('px-2.5')"
     >
       <div class="relative">
         <div :class="cn('h-5 w-5 border rounded-full', !selected?.fill ? 'opacity-50' : 'opacity-100')" :style="{ background }" />
         <div v-if="!selected?.fill" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-6 bg-card-foreground -rotate-45" />
       </div>
-      <span class="text-xs font-normal">Fill</span>
+      <span>Fill</span>
     </el-button>
   </div>
 </template>

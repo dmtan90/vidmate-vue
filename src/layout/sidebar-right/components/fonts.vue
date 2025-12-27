@@ -25,25 +25,23 @@ const handleChangeFontFamily = (font: any) => {
 </script>
 
 <template>
-  <div class="h-full w-full">
+  <div class="flex flex-col h-full">
     <div class="flex items-center h-14 border-b px-4 gap-2.5">
       <h2 class="font-semibold">Fonts</h2>
-      <el-button plain circle class="bg-card h-7 w-7 ml-auto" @click="editor.setActiveSidebarRight(null)">
-        <X :size="15" />
-      </el-button>
+      <el-button circle :icon="X" class="ml-auto" @click="editor.setActiveSidebarRight(null)" />
     </div>
-    <section class="sidebar-container">
-      <div class="px-3 py-4">
-        <div class="relative">
-          <el-input placeholder="Search..." class="text-xs" >
-            <template #prefix>
-              <Search :size="15" />
-            </template>
-          </el-input>
-        </div>
+    <section class="sidebar-container flex flex-col px-4 py-4">
+      <div class="relative pb-4">
+        <el-input placeholder="Search..." class="text-xs" >
+          <template #prefix>
+            <Search :size="15" />
+          </template>
+        </el-input>
       </div>
-      <div class="px-3 pb-4 flex flex-col gap-1">
-        <FontItem v-for="font in fonts" :key="font.family" :font="font" :selected="isFontSelected(font)" @click="handleChangeFontFamily(font)" />
+      <div class="relative overflow-x-scroll scrollbar-hidden">
+        <div class="flex flex-col gap-1">
+          <FontItem v-for="font in fonts" :key="font.family" :font="font" :selected="isFontSelected(font)" @click="handleChangeFontFamily(font)" />
+        </div>
       </div>
     </section>
   </div>
